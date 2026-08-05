@@ -11,6 +11,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/coexistence"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/config/secrets"
 	mqtls "github.com/platformrelay/ibm-mq-mcp-server/internal/config/tls"
 )
@@ -39,13 +40,14 @@ type Authentication struct {
 
 // Profile is one named queue-manager connection.
 type Profile struct {
-	Name           string         `yaml:"-" json:"-"`
-	QueueManager   string         `yaml:"queueManager" json:"queueManager"`
-	Endpoint       string         `yaml:"endpoint" json:"endpoint"`
-	Authentication Authentication `yaml:"authentication" json:"authentication"`
-	TLS            mqtls.Settings `yaml:"tls" json:"tls"`
-	Capabilities   []string       `yaml:"capabilities,omitempty" json:"capabilities,omitempty"`
-	Timeout        string         `yaml:"timeout,omitempty" json:"timeout,omitempty"`
+	Name           string                    `yaml:"-" json:"-"`
+	QueueManager   string                    `yaml:"queueManager" json:"queueManager"`
+	Endpoint       string                    `yaml:"endpoint" json:"endpoint"`
+	Authentication Authentication            `yaml:"authentication" json:"authentication"`
+	TLS            mqtls.Settings            `yaml:"tls" json:"tls"`
+	Capabilities   []string                  `yaml:"capabilities,omitempty" json:"capabilities,omitempty"`
+	MKurator       coexistence.ProfileConfig `yaml:"mkurator,omitempty" json:"mkurator,omitempty"`
+	Timeout        string                    `yaml:"timeout,omitempty" json:"timeout,omitempty"`
 }
 
 // Catalog holds all configured profiles keyed by stable name.
@@ -168,7 +170,29 @@ func validateProfile(p Profile) error {
 	if err := validateCapabilities(p.Capabilities); err != nil {
 		return err
 	}
+	if err := validateMKurator(p.MKurator); err != nil {
+		return err
+	}
 	return p.TLS.Validate()
+}
+
+func validateMKurator(cfg coexistence.ProfileConfig) error {
+	switch cfg.MutationPolicy {
+	case "", coexistence.PolicyWarn, coexistence.PolicyBlock:
+	default:
+		return fmt.Errorf("mkurator.mutationPolicy must be warn or block, got %q", cfg.MutationPolicy)
+	}
+	for i, ref := range cfg.ManagedObjects {
+		if strings.TrimSpace(ref.Name) == "" {
+			return fmt.Errorf("mkurator.managedObjects[%d].name is required", i)
+		}
+		switch ref.Kind {
+		case "", coexistence.ObjectQueue:
+		default:
+			return fmt.Errorf("mkurator.managedObjects[%d].kind %q is not supported", i, ref.Kind)
+		}
+	}
+	return nil
 }
 
 func validateCapabilities(caps []string) error {
