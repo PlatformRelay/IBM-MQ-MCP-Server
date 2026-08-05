@@ -1,6 +1,6 @@
 # CI quality gates
 
-Authority: [FND-002](../../agent-context/stories/FND-002.md).
+Authority: [FND-002](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/agent-context/stories/FND-002.md).
 
 ## Local one-command gate
 
