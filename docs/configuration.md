@@ -15,6 +15,11 @@
 | `IBM_MQ_MCP_ENABLE_MQSC` | Same as `--enable-mqsc` when the flag is omitted (truthy: `1`, `true`, `yes`, `on`) |
 | `--ops-addr` | Optional ops HTTP listen address (see [Observability](observability.md)) |
 | `IBM_MQ_MCP_OPS_ADDR` | Same as `--ops-addr` when the flag is omitted |
+| `--remote-addr` | Optional Streamable HTTP MCP listen address ([ADR-0006](adr/0006-remote-transport-and-auth.md)) |
+| `IBM_MQ_MCP_REMOTE_ADDR` | Same as `--remote-addr` when the flag is omitted |
+| `--remote-auth-token-ref` | Required when remote addr is set — bearer gate token (`env:` / `file:`) |
+| `IBM_MQ_MCP_REMOTE_AUTH_TOKEN_REF` | Same as `--remote-auth-token-ref` when the flag is omitted |
+| `--stdio` | Serve MCP over stdio (default `true`; set `false` for remote-only) |
 
 When no config path is supplied, the server starts with an empty catalog (valid
 bootstrap). Readiness reports configuration validity without contacting queue

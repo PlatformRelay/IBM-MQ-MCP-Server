@@ -47,8 +47,12 @@ tool design. Approved answers will be recorded in ADRs and linked stories.
     **Answered (ADR-0004):** First release (**CON-001**) supports **environment
     variables** and **mounted files** only; Kubernetes Secrets and Vault →
     [CON-002](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/agent-context/stories/CON-002.md).
-12. Is remote Streamable HTTP a first-release deployment target, and if so which
-    MCP-client authentication/authorization model is required?
+12. ~~Is remote Streamable HTTP a first-release deployment target, and if so which
+    MCP-client authentication/authorization model is required?~~
+    **Answered (ADR-0006):** stdio is the **primary v0 transport** (host
+    process-boundary trust). Streamable HTTP is **opt-in** (`--remote-addr`) with
+    a **server-configured bearer token** gate; client tokens are never forwarded
+    to MQ. OAuth/ingress mTLS deferred.
 13. Which IBM MQ versions and platforms must be supported, including z/OS?
 
 ## Message safety

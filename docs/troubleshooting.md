@@ -5,6 +5,8 @@
 | Symptom | Likely cause | Action |
 | --- | --- | --- |
 | `ops listener failed` / exit code 1 | Ops address in use or invalid | Change `--ops-addr` / `IBM_MQ_MCP_OPS_ADDR`; check bind permissions |
+| `remote MCP configuration failed` | Remote addr without auth token ref | Set `--remote-auth-token-ref` / `IBM_MQ_MCP_REMOTE_AUTH_TOKEN_REF` |
+| `remote MCP listener failed` | Remote address in use or invalid | Change `--remote-addr` / `IBM_MQ_MCP_REMOTE_ADDR` |
 | MCP host sees no tools | Expected in bootstrap | No MQ tools until INS/MSG/ADM stories land — see [Tool reference](tools/index.md) |
 | `task check` fails | Local gate drift | Run failing subtask (`task lint`, `task test:race`, …) — [CI gates](development/ci-gates.md) |
 
@@ -36,7 +38,8 @@ remain catalog-only for readiness.
 ## MCP client integration
 
 - Use **stdio** transport pointing at `ibm-mq-mcp` or `task run`.
-- Remote Streamable HTTP is **TBD** ([ADR-0006](adr/README.md#decision-queue)).
+- Remote Streamable HTTP is **opt-in** ([ADR-0006](adr/0006-remote-transport-and-auth.md)) —
+  requires bearer gate token; disabled by default.
 - Do not point MCP clients at `/metrics` or `/healthz` — those are operator
   endpoints, not MCP.
 

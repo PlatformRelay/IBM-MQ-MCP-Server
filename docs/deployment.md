@@ -67,11 +67,32 @@ guidance are deferred to deployment hardening after remote transport decisions
 ([ADR-0006](adr/README.md#decision-queue)) — the v0 image does not define a
 Docker `HEALTHCHECK`.
 
-## Remote MCP transport (TBD)
+## Remote MCP transport (opt-in — [ADR-0006](adr/0006-remote-transport-and-auth.md))
 
-Streamable HTTP as a first-class deployment target is **not decided**
-([ADR-0006](adr/README.md#decision-queue)). Until then, document and deploy
-**stdio** integrations only.
+Streamable HTTP MCP is **disabled by default**. Enable on a dedicated listener
+separate from ops HTTP:
+
+```bash
+ibm-mq-mcp \
+  --config /etc/ibm-mq-mcp/profiles.yaml \
+  --remote-addr :8080 \
+  --remote-auth-token-ref file:/run/secrets/mcp/gate-token \
+  --stdio=false
+```
+
+| Input | Purpose |
+| --- | --- |
+| `--remote-addr` | Streamable HTTP MCP listen address |
+| `IBM_MQ_MCP_REMOTE_ADDR` | Same when flag omitted |
+| `--remote-auth-token-ref` | Required with remote addr — `env:` or `file:` bearer gate token |
+| `IBM_MQ_MCP_REMOTE_AUTH_TOKEN_REF` | Same when flag omitted |
+| `--stdio=false` | Remote-only mode (no stdin MCP) |
+
+Clients must send `Authorization: Bearer <token>`. The gate token is **not**
+mqweb credentials and is never forwarded to IBM MQ.
+
+Abuse limits (body size, rate, concurrency, HTTP timeouts) apply on the remote
+listener only. See [Authentication](authentication.md).
 
 ## What we deliberately omit in v0
 

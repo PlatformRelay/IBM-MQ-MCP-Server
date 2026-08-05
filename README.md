@@ -25,7 +25,9 @@ IBM_MQ_MCP_OPS_ADDR=:9090 task run
 ```
 
 Operational endpoints (`/healthz`, `/readyz`, `/metrics`) bind only when
-`--ops-addr` or `IBM_MQ_MCP_OPS_ADDR` is set. See [AGENTS.md](AGENTS.md).
+`--ops-addr` or `IBM_MQ_MCP_OPS_ADDR` is set. Optional Streamable HTTP MCP
+requires `--remote-addr` plus `--remote-auth-token-ref` ([ADR-0006](docs/adr/0006-remote-transport-and-auth.md)).
+See [AGENTS.md](AGENTS.md).
 
 Sources of truth:
 

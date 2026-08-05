@@ -1,6 +1,6 @@
 # Remote access, audit, and operability
 
-**Status:** Draft — blocked by ADR-0006
+**Status:** Draft — ADR-0006 accepted; SEC-001 transport slice complete
 
 ## Why
 

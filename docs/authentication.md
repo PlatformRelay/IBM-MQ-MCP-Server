@@ -2,20 +2,30 @@
 
 Two distinct authentication layers apply. Do not conflate them.
 
-## MCP client → server (TBD — ADR-0006)
+## MCP client → server ([ADR-0006](adr/0006-remote-transport-and-auth.md))
 
-How remote MCP clients authenticate to this server (stdio hosts use the OS
-user/process boundary instead) is **undecided**. Candidates include OAuth for
-Streamable HTTP, mTLS at the ingress, or host-local stdio only for v0.
+### stdio (default)
 
-| Decision | Status | Authority |
-| --- | --- | --- |
-| Remote MCP transport target | Open | [ADR-0006](adr/README.md#decision-queue) |
-| MCP client identity model | Open | [ADR-0006](adr/README.md#decision-queue), [SEC-001](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/agent-context/stories/SEC-001.md) |
+Local MCP hosts spawn `ibm-mq-mcp` as a child process. Authentication is the
+**host OS/process boundary**: any principal that can start the server can use
+every profile in the loaded catalog. This is appropriate for single-operator
+workstations and trusted CI agents; it is **not** multi-tenant isolation.
 
-Until ADR-0006 is accepted, treat **stdio-only local use** as the supported
-deployment pattern. Do not document OAuth, API keys, or ingress auth as shipped
-behaviour.
+### Streamable HTTP (opt-in)
+
+Remote MCP is **disabled by default**. When enabled (`--remote-addr` /
+`IBM_MQ_MCP_REMOTE_ADDR`), clients must present a **server-configured bearer
+token** resolved from `env:` or `file:` references
+(`--remote-auth-token-ref` / `IBM_MQ_MCP_REMOTE_AUTH_TOKEN_REF`).
+
+| Property | Behaviour |
+| --- | --- |
+| Client header | `Authorization: Bearer <token>` |
+| Validation | Constant-time compare against configured gate token |
+| Passthrough | **Never** — client Authorization is stripped before MCP handling |
+| MQ credentials | Unaffected — still come from the selected connection profile only |
+
+OAuth, ingress mTLS, and per-client ACLs are deferred beyond v0.
 
 ## Server → IBM MQ / mqweb
 
@@ -45,10 +55,12 @@ Kubernetes Secrets and Vault follow [CON-002](https://github.com/PlatformRelay/I
   used only inside the mqweb adapter.
 
 A read-only MCP session must not imply read-only MQ access unless the chosen
-profile grants it. See [Policy](policy.md) and the [threat model](security/threat-model.md).
+profile grants it. MCP gate tokens must not influence mqweb authentication.
+See [Policy](policy.md) and the [threat model](security/threat-model.md).
 
 ## Related pages
 
-- [Configuration](configuration.md) — profile and secret-reference layout
+- [Configuration](configuration.md) — profile, remote, and secret-reference layout
+- [Deployment](deployment.md) — remote-only mode
 - [Security policy](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/SECURITY.md)
 - [Design questions 10–12](product/design-questions.md)

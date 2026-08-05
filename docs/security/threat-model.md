@@ -44,7 +44,7 @@ flowchart TB
   subgraph mq_zone["IBM MQ"]
     qm["Queue managers / mqweb"]
   end
-  host -->|"stdio or TBD HTTP"| mcp
+  host -->|"stdio (default) or opt-in HTTP"| mcp
   catalog -->|"secret refs only"| secrets["Secret providers"]
   adapter -->|"HTTPS + MQ identity"| qm
 ```
@@ -71,9 +71,9 @@ Denied operations must not reach IBM MQ. Metrics: `ibm_mq_mcp_policy_denials_tot
 
 - The **MCP client** identity (who asked the model to run a tool) is distinct
   from the **MQ credential** bound to the profile.
-- Remote MCP authentication is **TBD** ([ADR-0006](../adr/README.md#decision-queue),
-  [Authentication](../authentication.md)). Stdio deployments rely on OS/process
-  boundaries of the MCP host.
+- Remote MCP uses a **server-configured bearer gate** ([ADR-0006](../adr/0006-remote-transport-and-auth.md),
+  [Authentication](../authentication.md)). Client tokens are stripped before MCP
+  handling and never reach mqweb. Stdio deployments rely on OS/process boundaries.
 
 ## Threats and mitigations
 
@@ -83,7 +83,7 @@ Denied operations must not reach IBM MQ. Metrics: `ibm_mq_mcp_policy_denials_tot
 | Over-privileged profile | Unintended writes in production | Mixed grants via separate profiles; object filters TBD ([POL-002](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/agent-context/stories/POL-002.md)) |
 | Credential leakage via logs/errors/tool output | Account compromise | Secret refs not inline; redacting logs ([Observability](../observability.md)); scrub CI |
 | Credential leakage via config repo | Account compromise | Examples secret-free; gitleaks in CI |
-| Unauthenticated remote MCP | Unauthorized MQ access | Remote transport unset until ADR-0006 — **do not expose HTTP MCP without auth design** |
+| Unauthenticated remote MCP | Unauthorized MQ access | Remote MCP requires bearer gate token at startup ([ADR-0006](../adr/0006-remote-transport-and-auth.md)); abuse limits on remote listener |
 | MQ credential theft from container | Lateral movement to MQ | Nonroot distroless image; mount secrets read-only (future deploy guidance) |
 | Supply-chain tampering | Backdoored binary/image | cosign, SBOM, provenance, Trivy ([RELEASE.md](../RELEASE.md)) |
 | Log injection via tool arguments | Log forging, SIEM noise | Argument sanitization in slog handler (OBS-001) |
@@ -97,7 +97,7 @@ Denied operations must not reach IBM MQ. Metrics: `ibm_mq_mcp_policy_denials_tot
   versions — requires live validation ([MSG-001](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/agent-context/stories/MSG-001.md)
   spike).
 - **Version/platform matrix** not certified — see [support matrix](../support/version-matrix.md).
-- **Remote MCP auth** undecided — largest exposure if HTTP is enabled prematurely.
+- **Remote MCP auth** uses a coarse shared bearer gate — per-client ACLs deferred.
 
 ## Reporting
 
