@@ -20,7 +20,7 @@ through EPIC-002..008.
 [Story](stories/FND-001.md)
 
 ### FND-002 — Enforce CI quality gates and supply-chain checks
-⬜ Open · Starts after FND-001 (extend existing Scorecard/Docs/gitleaks CI).
+✅ Done · Integrated to `main` @ 99eaa5d.
 [Story](stories/FND-002.md)
 
 ### FND-003 — Container packaging and release automation

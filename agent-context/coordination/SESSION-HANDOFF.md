@@ -5,18 +5,17 @@
 
 ## State
 
-- **main tip:** `5edb34cc99e058987d59e655eda6289e63587427`
-- FND-001 integrated (Go module skeleton, minimal MCP server, boundary tests, Taskfile).
-- Product intent **Accepted**; ADR-0009 **Accepted** (MIT + OSS baseline).
-- Remote `lane/fnd-001` deleted after ff-merge.
+- **main tip:** `99eaa5d300d49815adf4a0317522ce8becaf572e`
+- FND-002 integrated (Taskfile `check`, golangci, CodeQL, coverage, scrub, gate docs).
+- FND-001 integrated earlier @ 5edb34c.
+- Remote `lane/fnd-002` deleted after ff-merge.
 
 ## Next
 
-1. Dispatch **FND-002** implementer (CI quality gates).
-2. Independent review → Integrator when FND-002 ready.
+1. **FND-003** — container packaging / release automation (blocked on DQ 22 artifact choice).
+2. Optional parallel: **OBS-001** (observability) or **DOC-001** (docs/operator UX).
 
 ## Do not
 
-- Register MQ tools in FND-001 scope (already merged — still out of scope for FND-002 unless story says so).
 - Open PRs under this local loop.
 - Auto-merge without independent APPROVE.
