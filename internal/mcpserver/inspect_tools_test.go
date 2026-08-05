@@ -53,8 +53,8 @@ func TestInspectionToolsRegistered(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListTools: %v", err)
 	}
-	if len(res.Tools) != 17 {
-		t.Fatalf("expected 17 tools, got %d", len(res.Tools))
+	if len(res.Tools) != 20 {
+		t.Fatalf("expected 20 tools, got %d", len(res.Tools))
 	}
 }
 
@@ -228,7 +228,10 @@ func TestRegisteredToolSpecsRequireInspect(t *testing.T) {
 		if name == "explain_mq_reason_code" ||
 			name == "browse_queue_messages" ||
 			name == "put_queue_message" ||
-			name == "consume_queue_messages" {
+			name == "consume_queue_messages" ||
+			name == "define_queue" ||
+			name == "alter_queue" ||
+			name == "delete_queue" {
 			continue
 		}
 		found := false
@@ -242,6 +245,20 @@ func TestRegisteredToolSpecsRequireInspect(t *testing.T) {
 		}
 		if !found {
 			t.Fatalf("missing spec for %q", name)
+		}
+	}
+}
+
+func TestRegisteredAdminToolSpecs(t *testing.T) {
+	t.Cleanup(mcpserver.ResetRegisteredTools)
+	pool := testInspectPool(t, nil)
+	mcpserver.NewWithInspector(application.NewInspector(pool))
+	for _, spec := range mcpserver.RegisteredTools {
+		switch spec.Name {
+		case "define_queue", "alter_queue", "delete_queue":
+			if spec.RequiredCapability != policy.Administer {
+				t.Fatalf("tool %q capability = %q", spec.Name, spec.RequiredCapability)
+			}
 		}
 	}
 }

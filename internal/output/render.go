@@ -274,6 +274,27 @@ func RenderPutResult(result messaging.PutResult) string {
 	)
 }
 
+// RenderQueueMutationResult renders queue mutation before/after identifiers.
+func RenderQueueMutationResult(result mqadmin.QueueMutationResult) string {
+	pairs := []string{
+		kv("operation", string(result.Operation)),
+		kv("profile", result.Profile),
+		kv("queueManager", result.QueueManager),
+		kv("queue", result.QueueName),
+		kvTime("completedAt", result.CompletedAt),
+	}
+	if result.Before != nil {
+		pairs = append(pairs, kv("before", result.Before.Name))
+	}
+	if result.After != nil {
+		pairs = append(pairs, kv("after", result.After.Name))
+	}
+	if result.Warning != "" {
+		pairs = append(pairs, kv("warning", result.Warning))
+	}
+	return joinPairs(pairs...)
+}
+
 // RenderMarkdownQueueTable renders a Markdown table for benchmark comparison.
 func RenderMarkdownQueueTable(page collection.Page[mqadmin.QueueSummary]) string {
 	var b strings.Builder
