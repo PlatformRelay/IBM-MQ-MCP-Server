@@ -6,13 +6,19 @@ An MCP server for safely inspecting and operating multiple IBM MQ environments.
 [![Docs](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/actions/workflows/docs.yaml/badge.svg)](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/actions/workflows/docs.yaml)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/PlatformRelay/IBM-MQ-MCP-Server/badge)](https://securityscorecards.dev/viewer/?uri=github.com/PlatformRelay/IBM-MQ-MCP-Server)
 [![License: MIT](https://img.shields.io/github/license/PlatformRelay/IBM-MQ-MCP-Server)](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/LICENSE)
+[![Go](https://img.shields.io/github/go-mod/go-version/PlatformRelay/IBM-MQ-MCP-Server)](https://pkg.go.dev/github.com/platformrelay/ibm-mq-mcp-server)
 
 ## Status
 
-Design baseline accepted; runtime implementation starts at
-[FND-001](agent-context/stories/FND-001.md) (Go module + minimal MCP server).
+Bootstrap intent accepted. The Go module skeleton and minimal MCP server
+(no MQ tools yet) start at [FND-001](agent-context/stories/FND-001.md).
 License and OSS maturity posture are recorded in
 [ADR-0009](docs/adr/0009-license-and-oss-maturity.md).
+
+```bash
+task test && task build
+task run   # stdio MCP server
+```
 
 Sources of truth:
 

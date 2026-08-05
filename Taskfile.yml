@@ -1,0 +1,29 @@
+version: "3"
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  build:
+    desc: CGO-free build of the MCP server binary
+    env:
+      CGO_ENABLED: "0"
+    cmds:
+      - mkdir -p bin
+      - go build -trimpath -o bin/ibm-mq-mcp ./cmd/ibm-mq-mcp
+
+  test:
+    desc: Run unit tests (CGO-free)
+    env:
+      CGO_ENABLED: "0"
+    cmds:
+      - go test ./...
+
+  run:
+    desc: Run the MCP server over stdio
+    env:
+      CGO_ENABLED: "0"
+    cmds:
+      - go run ./cmd/ibm-mq-mcp

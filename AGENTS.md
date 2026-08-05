@@ -44,15 +44,19 @@ Do not duplicate requirements across these layers. Link to the authority instead
 
 ## Validation
 
-Until FND-001 lands Taskfile Go gates:
-
 ```bash
+# Docs
 pip install -r docs/requirements-docs.txt
 mkdocs build --strict
+
+# Go (FND-001) — CGO-free
+task test          # or: CGO_ENABLED=0 go test ./...
+task build         # or: CGO_ENABLED=0 go build -o bin/ibm-mq-mcp ./cmd/ibm-mq-mcp
+task run           # MCP server over stdio
 ```
 
-After FND-001 / FND-002, prefer `task verify`, `task lint`, `task test`,
-`task coverage`, and `task scrub` (Kollect/MKurator pattern).
+FND-002 will add `task verify` / `lint` / `coverage` / `scrub` and CI gates
+matching Kollect/MKurator.
 
 ## Repository hygiene
 
