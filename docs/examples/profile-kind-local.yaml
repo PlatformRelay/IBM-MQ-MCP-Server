@@ -1,6 +1,5 @@
 # Illustrative profile for local Kind IBM MQ (FND-004).
-# NOT a supported config schema until CON-001 / ADR-0004 land.
-# Secret-free: credentials referenced by env name only — never commit values.
+# Schema per ADR-0004 / docs/configuration.md — secret-free refs only.
 
 profiles:
   kind-local:

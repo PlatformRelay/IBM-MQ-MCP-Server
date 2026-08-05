@@ -1,0 +1,172 @@
+package catalog_test
+
+import (
+	"strings"
+	"testing"
+
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/config/catalog"
+)
+
+const validBasicYAML = `
+profiles:
+  production:
+    queueManager: PROD1
+    endpoint: https://mq.example.test:9443
+    authentication:
+      type: basic
+      secretRef: env:MQ_PROD_CREDENTIALS
+    tls:
+      caRef: file:/etc/mq/ca.pem
+    capabilities:
+      - inspect
+`
+
+func TestLoadYAMLValidCatalog(t *testing.T) {
+	cat, err := catalog.LoadYAML([]byte(validBasicYAML))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cat.Profiles) != 1 {
+		t.Fatalf("profiles = %d", len(cat.Profiles))
+	}
+	result := cat.Validate()
+	if !result.AllValid() {
+		t.Fatalf("validation failed: %+v", result.Statuses)
+	}
+}
+
+func TestLoadYAMLDuplicateNames(t *testing.T) {
+	doc := `
+profiles:
+  prod:
+    queueManager: QM1
+    endpoint: https://a.example.test:9443
+    authentication:
+      type: basic
+      secretRef: env:X
+  prod:
+    queueManager: QM2
+    endpoint: https://b.example.test:9443
+    authentication:
+      type: basic
+      secretRef: env:Y
+`
+	_, err := catalog.LoadYAML([]byte(doc))
+	if err == nil {
+		t.Fatal("expected duplicate name error")
+	}
+	if !strings.Contains(err.Error(), "duplicate") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestValidateMissingSecretRef(t *testing.T) {
+	doc := `
+profiles:
+  bad:
+    queueManager: QM1
+    endpoint: https://mq.example.test:9443
+    authentication:
+      type: basic
+`
+	cat, err := catalog.LoadYAML([]byte(doc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := cat.Validate()
+	if result.AllValid() {
+		t.Fatal("expected validation failure")
+	}
+	if result.IsValid("bad") {
+		t.Fatal("bad profile should be invalid")
+	}
+}
+
+func TestValidateInvalidTLSRef(t *testing.T) {
+	doc := `
+profiles:
+  bad:
+    queueManager: QM1
+    endpoint: https://mq.example.test:9443
+    authentication:
+      type: basic
+      secretRef: env:MQ_PASS
+    tls:
+      caRef: env:NOT_ALLOWED
+`
+	cat, err := catalog.LoadYAML([]byte(doc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := cat.Validate()
+	if result.IsValid("bad") {
+		t.Fatal("expected invalid TLS")
+	}
+}
+
+func TestValidateRejectsInlineSecrets(t *testing.T) {
+	doc := `
+profiles:
+  bad:
+    queueManager: QM1
+    endpoint: https://mq.example.test:9443
+    authentication:
+      type: basic
+      username: admin
+      password: secret
+`
+	cat, err := catalog.LoadYAML([]byte(doc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := cat.Validate()
+	if result.IsValid("bad") {
+		t.Fatal("expected inline secret rejection")
+	}
+}
+
+func TestValidateFailOpenPartialValidity(t *testing.T) {
+	doc := `
+profiles:
+  good:
+    queueManager: QM1
+    endpoint: https://mq.example.test:9443
+    authentication:
+      type: basic
+      secretRef: env:MQ_GOOD
+  bad:
+    queueManager: QM2
+    endpoint: http://insecure:9443
+    authentication:
+      type: basic
+      secretRef: env:MQ_BAD
+`
+	cat, err := catalog.LoadYAML([]byte(doc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := cat.Validate()
+	if !result.AnyValid() || result.AllValid() {
+		t.Fatalf("expected partial validity, got %+v", result.Statuses)
+	}
+}
+
+func TestValidateMTLSProfile(t *testing.T) {
+	doc := `
+profiles:
+  mtls:
+    queueManager: QM1
+    endpoint: https://mq.example.test:9443
+    authentication:
+      type: mtls
+      certificateRef: file:/run/secrets/client.pem
+      privateKeyRef: file:/run/secrets/client-key.pem
+`
+	cat, err := catalog.LoadYAML([]byte(doc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cat.Validate().IsValid("mtls") {
+		t.Fatal("expected valid mtls profile")
+	}
+}

@@ -37,7 +37,7 @@ through EPIC-002..008.
 [Change](../openspec/changes/connection-profiles-and-policy/proposal.md)
 
 ### CON-001 — Resolve multiple secure MQ connection profiles
-⬜ Open · ADR-0004 Accepted; env/file secrets only in this slice.
+✅ Done · lane/con-001 — profile catalog, env/file secrets, TLS, client pool stubs.
 [Story](stories/CON-001.md)
 
 ### CON-002 — Additional secret providers

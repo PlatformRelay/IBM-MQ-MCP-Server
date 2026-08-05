@@ -1,0 +1,271 @@
+// Package application wires configuration into runtime services.
+package application
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"net/http"
+	"os"
+	"sync"
+	"time"
+
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/config/catalog"
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/config/secrets"
+	mqtls "github.com/platformrelay/ibm-mq-mcp-server/internal/config/tls"
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/messaging"
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/mqadmin"
+)
+
+// LoadCatalogFromFile reads YAML or JSON profile catalogs from disk.
+func LoadCatalogFromFile(path string) (*catalog.Catalog, error) {
+	data, err := os.ReadFile(path) //nolint:gosec // G304: operator-supplied config path
+	if err != nil {
+		return nil, fmt.Errorf("read config %q: %w", path, err)
+	}
+	switch {
+	case hasSuffixFold(path, ".json"):
+		return catalog.LoadJSON(data)
+	default:
+		return catalog.LoadYAML(data)
+	}
+}
+
+func hasSuffixFold(path, suffix string) bool {
+	if len(path) < len(suffix) {
+		return false
+	}
+	end := path[len(path)-len(suffix):]
+	for i := 0; i < len(suffix); i++ {
+		a, b := end[i], suffix[i]
+		if a >= 'A' && a <= 'Z' {
+			a += 'a' - 'A'
+		}
+		if b >= 'A' && b <= 'Z' {
+			b += 'a' - 'A'
+		}
+		if a != b {
+			return false
+		}
+	}
+	return true
+}
+
+// ProfilePool lazily resolves credentials and reuses HTTP clients per profile.
+type ProfilePool struct {
+	catalog    *catalog.Catalog
+	validation catalog.ValidationResult
+	resolver   *secrets.Resolver
+
+	mu        sync.Mutex
+	admin     map[string]mqadmin.Client
+	messaging map[string]messaging.Client
+	closed    bool
+}
+
+// NewProfilePool constructs a pool for validated profiles.
+func NewProfilePool(
+	cat *catalog.Catalog,
+	validation catalog.ValidationResult,
+	resolver *secrets.Resolver,
+) *ProfilePool {
+	if resolver == nil {
+		resolver = secrets.NewResolver()
+	}
+	return &ProfilePool{
+		catalog:    cat,
+		validation: validation,
+		resolver:   resolver,
+		admin:      make(map[string]mqadmin.Client),
+		messaging:  make(map[string]messaging.Client),
+	}
+}
+
+// Admin returns the administration client for a profile, resolving secrets on first use.
+func (p *ProfilePool) Admin(name string) (mqadmin.Client, error) {
+	return p.adminClient(name)
+}
+
+// Messaging returns the messaging client for a profile, resolving secrets on first use.
+func (p *ProfilePool) Messaging(name string) (messaging.Client, error) {
+	return p.messagingClient(name)
+}
+
+func (p *ProfilePool) adminClient(name string) (mqadmin.Client, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.closed {
+		return nil, errors.New("profile pool closed")
+	}
+	if client, ok := p.admin[name]; ok {
+		return client, nil
+	}
+	profile, err := p.requireProfile(name)
+	if err != nil {
+		return nil, err
+	}
+	client, err := newMQWebAdminClient(profile, p.resolver)
+	if err != nil {
+		return nil, err
+	}
+	p.admin[name] = client
+	return client, nil
+}
+
+func (p *ProfilePool) messagingClient(name string) (messaging.Client, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.closed {
+		return nil, errors.New("profile pool closed")
+	}
+	if client, ok := p.messaging[name]; ok {
+		return client, nil
+	}
+	profile, err := p.requireProfile(name)
+	if err != nil {
+		return nil, err
+	}
+	client, err := newMQWebMessagingClient(profile, p.resolver)
+	if err != nil {
+		return nil, err
+	}
+	p.messaging[name] = client
+	return client, nil
+}
+
+func (p *ProfilePool) requireProfile(name string) (catalog.Profile, error) {
+	profile, ok := p.catalog.ProfileByName(name)
+	if !ok {
+		return catalog.Profile{}, fmt.Errorf("unknown profile %q", name)
+	}
+	if !p.validation.IsValid(name) {
+		return catalog.Profile{}, fmt.Errorf("profile %q failed validation", name)
+	}
+	return profile, nil
+}
+
+// Close shuts down pooled clients.
+func (p *ProfilePool) Close() error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.closed {
+		return nil
+	}
+	p.closed = true
+	var err error
+	for _, client := range p.admin {
+		err = errors.Join(err, client.Close())
+	}
+	for _, client := range p.messaging {
+		err = errors.Join(err, client.Close())
+	}
+	return err
+}
+
+type mqwebClient struct {
+	name       string
+	endpoint   string
+	httpClient *http.Client
+	authType   catalog.AuthType
+}
+
+func (c mqwebClient) ProfileName() string { return c.name }
+
+func (c mqwebClient) Ping(ctx context.Context) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.endpoint+"/health", nil)
+	if err != nil {
+		return err
+	}
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	return nil
+}
+
+func (c mqwebClient) Close() error { return nil }
+
+type adminClient struct{ mqwebClient }
+
+type messagingClient struct{ mqwebClient }
+
+func newMQWebAdminClient(profile catalog.Profile, resolver *secrets.Resolver) (mqadmin.Client, error) {
+	base, err := newMQWebBaseClient(profile, resolver)
+	if err != nil {
+		return nil, err
+	}
+	return adminClient{base}, nil
+}
+
+func newMQWebMessagingClient(profile catalog.Profile, resolver *secrets.Resolver) (messaging.Client, error) {
+	base, err := newMQWebBaseClient(profile, resolver)
+	if err != nil {
+		return nil, err
+	}
+	return messagingClient{base}, nil
+}
+
+func newMQWebBaseClient(profile catalog.Profile, resolver *secrets.Resolver) (mqwebClient, error) {
+	if err := resolveAuth(profile.Authentication, resolver); err != nil {
+		return mqwebClient{}, err
+	}
+	tlsCfg, err := mqtls.BuildConfig(profile.TLS, resolver)
+	if err != nil {
+		return mqwebClient{}, err
+	}
+	timeout := 30 * time.Second
+	if profile.Timeout != "" {
+		if d, err := time.ParseDuration(profile.Timeout); err == nil {
+			timeout = d
+		}
+	}
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.TLSClientConfig = tlsCfg
+	return mqwebClient{
+		name:     profile.Name,
+		endpoint: profile.Endpoint,
+		authType: profile.Authentication.Type,
+		httpClient: &http.Client{
+			Timeout:   timeout,
+			Transport: transport,
+		},
+	}, nil
+}
+
+func resolveAuth(auth catalog.Authentication, resolver *secrets.Resolver) error {
+	switch auth.Type {
+	case catalog.AuthBasic:
+		ref, err := secrets.Parse(auth.SecretRef)
+		if err != nil {
+			return err
+		}
+		if _, err := resolver.Resolve(ref); err != nil {
+			return fmt.Errorf("resolve basic credentials: %w", err)
+		}
+	case catalog.AuthMTLS:
+		for _, raw := range []string{auth.CertificateRef, auth.PrivateKeyRef, auth.PassphraseRef} {
+			if raw == "" {
+				continue
+			}
+			ref, err := secrets.Parse(raw)
+			if err != nil {
+				return err
+			}
+			if _, err := resolver.Resolve(ref); err != nil {
+				return fmt.Errorf("resolve mtls material: %w", err)
+			}
+		}
+	default:
+		return fmt.Errorf("unsupported authentication type %q", auth.Type)
+	}
+	return nil
+}
+
+// ConfigReady reports whether readiness should succeed for the loaded catalog.
+func ConfigReady(cat *catalog.Catalog, validation catalog.ValidationResult) bool {
+	if cat == nil || len(cat.Profiles) == 0 {
+		return true
+	}
+	return validation.AnyValid()
+}

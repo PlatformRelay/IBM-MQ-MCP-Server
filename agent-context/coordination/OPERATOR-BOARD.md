@@ -4,20 +4,19 @@
 
 | Lane | Branch | Worktree | Notes |
 | --- | --- | --- | --- |
-| — | — | — | — |
+| CON-001 | lane/con-001 | ../ibm-mq-mcp-con-001 | Profile catalog + secrets + TLS + pool stubs |
 
 ## Ready / next
 
 | Lane | Status | Notes |
 | --- | --- | --- |
-| CON-001 | Ready | ADR-0004 Accepted; profile catalog + env/file secrets |
-| POL-001 | After CON-001 (or parallel if disjoint) | ADR-0003 + ADR-0004 accepted |
+| POL-001 | Ready after CON-001 push | Capability enforcement on profile catalog |
 
 ## Integrated / Done
 
 | Item | Notes |
 | --- | --- |
-| ADR-0004 — Config and secret providers | Accepted on `main` (pending push sha) |
+| ADR-0004 — Config and secret providers | Accepted on `main` @ 5269e76 |
 | DOC-001 — Docs & operator UX | Integrated to `main` @ 9efa2f9 |
 | OBS-001 — Health/metrics/logs | Integrated to `main` @ 7f1c256 |
 | ADR-0009 MIT + OSS posture | Community files, Scorecard, Docs CI, Dependabot/Renovate |
