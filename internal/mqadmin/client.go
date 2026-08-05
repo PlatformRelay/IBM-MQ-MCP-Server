@@ -29,4 +29,8 @@ type Client interface {
 		req ListSubscriptionsRequest,
 	) (collection.Page[SubscriptionSummary], error)
 	GetSubscription(ctx context.Context, id string) (SubscriptionDetail, error)
+
+	DefineQueue(ctx context.Context, name string, req DefineQueueRequest) (QueueMutationResult, error)
+	AlterQueue(ctx context.Context, name string, req AlterQueueRequest) (QueueMutationResult, error)
+	DeleteQueue(ctx context.Context, name string) (QueueMutationResult, error)
 }

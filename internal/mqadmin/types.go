@@ -47,6 +47,8 @@ type QueueDetail struct {
 	OpenOutputCount int    `json:"openOutputCount,omitempty"`
 	InhibitGet      string `json:"inhibitGet,omitempty"`
 	InhibitPut      string `json:"inhibitPut,omitempty"`
+	Description     string `json:"description,omitempty"`
+	MKuratorTag     string `json:"-"`
 }
 
 // ListQueuesFilter narrows queue listing without accepting arbitrary MQSC.

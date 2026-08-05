@@ -31,6 +31,10 @@ type Client struct {
 	ListSubscriptionsCalls int
 	GetSubscriptionCalls   int
 
+	DefineQueueCalls int
+	AlterQueueCalls  int
+	DeleteQueueCalls int
+
 	QMStatus       mqadmin.QueueManagerStatus
 	ListQueuesPage collection.Page[mqadmin.QueueSummary]
 	Queue          mqadmin.QueueDetail
@@ -57,6 +61,13 @@ type Client struct {
 	ListSubscriptionsErr error
 	GetSubscriptionErr   error
 	Closed               bool
+
+	DefineQueueResult mqadmin.QueueMutationResult
+	AlterQueueResult  mqadmin.QueueMutationResult
+	DeleteQueueResult mqadmin.QueueMutationResult
+	DefineQueueErr    error
+	AlterQueueErr     error
+	DeleteQueueErr    error
 }
 
 // New returns a fake admin client for the given profile name.
@@ -247,6 +258,87 @@ func (c *Client) GetSubscription(_ context.Context, id string) (mqadmin.Subscrip
 	return sub, nil
 }
 
+// DefineQueue records the call and returns configured stub data.
+func (c *Client) DefineQueue(
+	_ context.Context,
+	name string,
+	req mqadmin.DefineQueueRequest,
+) (mqadmin.QueueMutationResult, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.DefineQueueCalls++
+	if c.DefineQueueErr != nil {
+		return mqadmin.QueueMutationResult{}, c.DefineQueueErr
+	}
+	result := c.DefineQueueResult
+	if result.QueueName == "" {
+		result.QueueName = name
+	}
+	if result.Operation == "" {
+		result.Operation = mqadmin.MutationDefine
+	}
+	if result.After == nil {
+		result.After = &mqadmin.QueueSnapshot{
+			Name: name,
+			Type: string(req.QueueType),
+		}
+		if req.MaxDepth != nil {
+			result.After.MaxDepth = *req.MaxDepth
+		}
+	}
+	return result, nil
+}
+
+// AlterQueue records the call and returns configured stub data.
+func (c *Client) AlterQueue(
+	_ context.Context,
+	name string,
+	req mqadmin.AlterQueueRequest,
+) (mqadmin.QueueMutationResult, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.AlterQueueCalls++
+	if c.AlterQueueErr != nil {
+		return mqadmin.QueueMutationResult{}, c.AlterQueueErr
+	}
+	result := c.AlterQueueResult
+	if result.QueueName == "" {
+		result.QueueName = name
+	}
+	if result.Operation == "" {
+		result.Operation = mqadmin.MutationAlter
+	}
+	if result.After == nil {
+		after := mqadmin.QueueSnapshot{Name: name}
+		if req.MaxDepth != nil {
+			after.MaxDepth = *req.MaxDepth
+		}
+		if req.Description != nil {
+			after.Description = *req.Description
+		}
+		result.After = &after
+	}
+	return result, nil
+}
+
+// DeleteQueue records the call and returns configured stub data.
+func (c *Client) DeleteQueue(_ context.Context, name string) (mqadmin.QueueMutationResult, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.DeleteQueueCalls++
+	if c.DeleteQueueErr != nil {
+		return mqadmin.QueueMutationResult{}, c.DeleteQueueErr
+	}
+	result := c.DeleteQueueResult
+	if result.QueueName == "" {
+		result.QueueName = name
+	}
+	if result.Operation == "" {
+		result.Operation = mqadmin.MutationDelete
+	}
+	return result, nil
+}
+
 // Calls returns invocation counts for policy-deny assertions.
 func (c *Client) Calls() (qmStatus, listQueues, getQueue, ping int) {
 	c.mu.Lock()
@@ -261,5 +353,6 @@ func (c *Client) TotalCalls() int {
 	return c.QMStatusCalls + c.ListQueuesCalls + c.GetQueueCalls + c.PingCalls +
 		c.ListChannelsCalls + c.GetChannelCalls + c.GetChannelStatusCalls +
 		c.ListListenersCalls + c.GetListenerCalls + c.GetListenerStatusCalls +
-		c.ListSubscriptionsCalls + c.GetSubscriptionCalls
+		c.ListSubscriptionsCalls + c.GetSubscriptionCalls +
+		c.DefineQueueCalls + c.AlterQueueCalls + c.DeleteQueueCalls
 }

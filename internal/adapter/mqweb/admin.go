@@ -167,8 +167,13 @@ type queueListResponse struct {
 type queueJSON struct {
 	Name    string           `json:"name"`
 	Type    string           `json:"type"`
+	General *queueGeneralJ   `json:"general,omitempty"`
 	Storage *storageJSON     `json:"storage,omitempty"`
 	Status  *queueStatusJSON `json:"status,omitempty"`
+}
+
+type queueGeneralJ struct {
+	Description string `json:"description"`
 }
 
 type storageJSON struct {
@@ -215,6 +220,10 @@ func parseQueueDetail(body []byte, name string) (mqadmin.QueueDetail, error) {
 	}
 	if q.Storage != nil {
 		detail.MaxDepth = q.Storage.MaximumDepth
+	}
+	if q.General != nil {
+		detail.Description = q.General.Description
+		detail.MKuratorTag = parseMKuratorTag(q.General.Description)
 	}
 	if q.Status != nil {
 		detail.CurrentDepth = q.Status.CurrentDepth
