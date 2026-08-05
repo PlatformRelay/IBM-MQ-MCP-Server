@@ -18,8 +18,14 @@ License and OSS maturity posture are recorded in
 
 ```bash
 task test && task build
-task run   # stdio MCP server
+task run   # stdio MCP server (no ops HTTP by default)
+
+# Optional ops listener (health, readiness, metrics)
+IBM_MQ_MCP_OPS_ADDR=:9090 task run
 ```
+
+Operational endpoints (`/healthz`, `/readyz`, `/metrics`) bind only when
+`--ops-addr` or `IBM_MQ_MCP_OPS_ADDR` is set. See [AGENTS.md](AGENTS.md).
 
 Sources of truth:
 

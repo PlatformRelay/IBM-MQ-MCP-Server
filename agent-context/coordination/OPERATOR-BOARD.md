@@ -4,13 +4,12 @@
 
 | Lane | Branch | Worktree | Notes |
 | --- | --- | --- | --- |
-| *(none)* | | | |
+| OBS-001 | `lane/obs-001` | `../ibm-mq-mcp-obs-001` | Health/metrics/logs — implement complete, awaiting review |
 
 ## Ready / next
 
 | Lane | Status | Notes |
 | --- | --- | --- |
-| OBS-001 — Health/metrics/logs | ⬜ Next | Unblocked; optional polish |
 | DOC-001 — Docs & operator UX | ⬜ Next | Can run alongside OBS-001 |
 
 ## Integrated / Done

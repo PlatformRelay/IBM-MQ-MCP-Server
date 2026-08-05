@@ -64,8 +64,27 @@ task vulncheck     # govulncheck
 task scrub:tree    # forbidden-pattern scrub
 task build         # CGO-free binary
 task docker:build  # local container smoke (ibm-mq-mcp:dev, distroless nonroot)
-task run           # MCP server over stdio
+task run           # MCP server over stdio (default; no ops HTTP)
+
+# Optional ops HTTP (health, readiness, metrics) — separate from MCP transport
+IBM_MQ_MCP_OPS_ADDR=:9090 task run
+# or: go run ./cmd/ibm-mq-mcp --ops-addr :9090
 ```
+
+### Operational endpoints (OBS-001)
+
+When `--ops-addr` or `IBM_MQ_MCP_OPS_ADDR` is set, a dedicated HTTP listener
+serves probes and metrics **separately from stdio MCP**. In stdio-only mode
+(default) these endpoints are absent.
+
+| Path | Purpose |
+| --- | --- |
+| `/healthz` | Liveness — process can serve probes |
+| `/readyz` | Readiness — valid config and MCP transport serving (no MQ contact) |
+| `/metrics` | Prometheus: `ibm_mq_mcp_requests_total`, `ibm_mq_mcp_request_duration_seconds`, `ibm_mq_mcp_policy_denials_total` (profile label only; `_none` until profiles land) |
+
+Structured logs use JSON on stderr with central redaction of secret-like fields
+and sanitization of tool-argument values to resist log injection.
 
 ## Repository hygiene
 
