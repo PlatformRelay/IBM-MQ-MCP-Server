@@ -11,7 +11,7 @@ new ADR.
 | [ADR-0002](0002-mqweb-first-connectivity.md) | mqweb REST first; PCF/native deferred — **Accepted** | CON-001 |
 | [ADR-0003](0003-capability-model.md) | Operation-oriented capability model — **Accepted** | POL-001, POL-002, MSG-001..003, ADM-001 |
 | [ADR-0004](0004-configuration-and-secrets.md) | Configuration and secret providers — **Accepted** | CON-001, CON-002 |
-| ADR-0005 | Structured results and token-efficient rendering | INS-001, OUT-001 |
+| [ADR-0005](0005-structured-results-and-rendering.md) | Structured results and token-efficient rendering — **Accepted** | INS-001, OUT-001, MSG-001 |
 | ADR-0006 | MCP transports and client authorization | SEC-001, SEC-002 |
 | ADR-0007 | MKurator coexistence boundary | INT-001, ADM-001 |
 | ADR-0008 | Raw MQSC policy | ADM-003 |

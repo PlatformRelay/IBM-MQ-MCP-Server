@@ -4,8 +4,8 @@
 
 INS-001 and INS-002 register typed inspection tools when a profile catalog is loaded
 (`--config` / `IBM_MQ_MCP_CONFIG`). INS-003 adds offline reason-code explanation
-and side-effect-free profile connectivity checks. Results are returned as JSON
-`structuredContent` only (provisional collection contract — see below).
+and side-effect-free profile connectivity checks. MSG-001 adds bounded non-destructive
+message browse. Results are returned as JSON `structuredContent` ([ADR-0005](../adr/0005-structured-results-and-rendering.md)).
 
 | Tool | Capability | Description |
 | --- | --- | --- |
@@ -23,17 +23,18 @@ and side-effect-free profile connectivity checks. Results are returned as JSON
 | `get_subscription` | `inspect` | Subscription definition by id or name |
 | `explain_mq_reason_code` | _(offline reference; no MQ I/O)_ | Explain an IBM MQ reason code from bundled data; unknown codes get a generic fallback |
 | `check_profile_connectivity` | `inspect` | Verify mqweb reachability, identity match, and latency without mutation |
+| `browse_queue_messages` | `browse` | Bounded non-destructive queue browse; metadata by default, optional payloads |
 
 Policy denies remote tools before credential resolution or mqweb I/O when the
-active profile lacks `inspect`. The offline reason-code tool never performs MQ
+active profile lacks the required capability (`inspect`, `browse`, etc.). The offline reason-code tool never performs MQ
 I/O. See [NOTICE](../NOTICE.md) for IBM MQRC attribution.
 
-!!! note "Provisional collection contract (pre-ADR-0005)"
+!!! note "Collection contract (ADR-0005)"
     List-style tools share a JSON envelope: `items`, `limit`, optional
-    `cursor` / `nextCursor`, and `truncated` (+ `truncationReason`). Default
-    limit is **50**; maximum is **200** — nothing is unbounded. ADR-0005 and
-    OUT-001 may add Markdown/TOON renderings later; until then operators and
-    clients should consume `structuredContent` only.
+    `cursor` / `nextCursor`, and `truncated` (+ `truncationReason`). Inspection
+    lists default limit **50** (max **200**); browse defaults to count **10**
+    (max **100**). OUT-001 may add Markdown/TOON renderings later; clients should
+    consume `structuredContent` only.
 
 Run `task run` with a config path and connect an MCP inspector to list tools.
 

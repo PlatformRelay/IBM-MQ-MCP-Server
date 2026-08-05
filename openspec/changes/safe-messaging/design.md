@@ -1,8 +1,10 @@
 # Messaging design
 
-**Status:** Deferred until the mqweb feasibility spike (MSG-001) and message
-safety decisions (design questions 14–17) conclude.
+**Status:** Browse slice accepted (MSG-001); produce/consume deferred to MSG-002/003.
 
-Must record verified mqweb Messaging REST behavior — not assumed MQI
-behavior — for browse, get, and put, and derive limits and error mapping from
-that evidence.
+Recorded mqweb Messaging REST behaviour for browse in
+[docs/messaging/mqweb-semantics.md](../../messaging/mqweb-semantics.md).
+Limits and redaction follow design questions 14–16 (ADR-0005).
+
+Produce and consume must still record verified semantics before shipping
+(MSG-002, MSG-003).

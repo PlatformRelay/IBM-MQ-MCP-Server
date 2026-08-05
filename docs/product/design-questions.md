@@ -51,10 +51,16 @@ tool design. Approved answers will be recorded in ADRs and linked stories.
 
 ## Message safety
 
-14. What default and maximum browse counts and payload sizes are acceptable?
-15. May payloads be returned by default, or only metadata until explicitly
-    requested?
-16. Which payload encodings and redaction rules are required?
+14. ~~What default and maximum browse counts and payload sizes are acceptable?~~
+    **Answered (MSG-001, ADR-0005):** Default browse count **10**, server max **100**;
+    default max payload bytes per message **4096**, hard max **65536**.
+15. ~~May payloads be returned by default, or only metadata until explicitly
+    requested?~~
+    **Answered (MSG-001, ADR-0003):** **Metadata only by default**; payloads when
+    `includePayload=true` (requires `browse`).
+16. ~~Which payload encodings and redaction rules are required?~~
+    **Answered (MSG-001):** UTF-8 text preferred; binary as base64 with `encoding`;
+    secret-like patterns redacted before results; payloads never logged.
 17. Should put operations accept arbitrary bytes, text/JSON only, or named
     content types with validation?
 

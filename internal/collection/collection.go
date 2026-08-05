@@ -20,7 +20,7 @@ const (
 	TruncationBackendCap TruncationReason = "backend_cap"
 )
 
-// Page is the shared envelope for list-style tool results (provisional pre-ADR-0005).
+// Page is the shared envelope for list-style tool results (ADR-0005).
 type Page[T any] struct {
 	Items            []T              `json:"items"`
 	Limit            int              `json:"limit"`
