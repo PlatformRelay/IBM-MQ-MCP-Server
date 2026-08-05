@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/adapter/remotemcp"
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/observability/audit"
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/observability/metrics"
 )
 
 func TestResolveConfigPathPrefersFlag(t *testing.T) {
@@ -60,7 +62,7 @@ profiles:
 `), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := loadProfiles(path, true); err == nil {
+	if _, _, err := loadProfiles(path, true, audit.NewSlogRecorder(nil), metrics.New()); err == nil {
 		t.Fatal("expected strict startup failure")
 	}
 }
@@ -87,7 +89,7 @@ profiles:
 `), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	pool, ready, err := loadProfiles(path, false)
+	pool, ready, err := loadProfiles(path, false, audit.NewSlogRecorder(nil), metrics.New())
 	if err != nil {
 		t.Fatal(err)
 	}

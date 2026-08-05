@@ -1,10 +1,18 @@
 # Remote access and operability design
 
-**Status:** Active — ADR-0006 accepted; SEC-001 transport slice landed.
+**Status:** Active — ADR-0006 accepted; SEC-001 transport slice landed; SEC-002 audit v0 landed.
 
 Must fix the audit event schema, the audit failure policy (fail-open versus
 fail-closed), metric names and labels (no high-cardinality or secret labels),
 and the separation between MCP transport and operational endpoints.
+
+## Audit (SEC-002 — landed)
+
+- **Schema:** `internal/observability/audit` — allowlisted fields only; no credentials/payloads.
+- **Sink v0:** structured slog JSON on stderr (`msg=audit`).
+- **Failure policy:** fail-open (sink errors never block MCP/MQ); documented in `docs/observability.md`.
+- **Correlation:** `correlationId` on context joins policy decisions and operation outcomes.
+- **Coverage:** policy deny + browse/produce/consume/admin mutations + raw MQSC.
 
 ## Transport (SEC-001 — landed)
 

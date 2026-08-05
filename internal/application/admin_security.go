@@ -14,11 +14,14 @@ func (a *Administrator) DefineChannel(
 	ctx context.Context,
 	profileName, channelName string,
 	req mqadmin.DefineChannelRequest,
-) (mqadmin.ChannelMutationResult, error) {
-	if err := mqadmin.ValidateDefineChannelRequest(channelName, req); err != nil {
+) (result mqadmin.ChannelMutationResult, err error) {
+	ctx, done := beginMutationAudit(ctx, a.pool, profileName, "define_channel", "channel", channelName)
+	defer func() { done(err) }()
+
+	if err = mqadmin.ValidateDefineChannelRequest(channelName, req); err != nil {
 		return mqadmin.ChannelMutationResult{}, err
 	}
-	client, profile, hook, err := a.authorizedMutation(profileName, "define_channel")
+	client, profile, hook, err := a.authorizedMutation(ctx, profileName, "define_channel")
 	if err != nil {
 		return mqadmin.ChannelMutationResult{}, err
 	}
@@ -32,7 +35,7 @@ func (a *Administrator) DefineChannel(
 	if err != nil {
 		return mqadmin.ChannelMutationResult{}, err
 	}
-	result, err := client.DefineChannel(ctx, channelName, req)
+	result, err = client.DefineChannel(ctx, channelName, req)
 	if err != nil {
 		return mqadmin.ChannelMutationResult{}, err
 	}
@@ -46,11 +49,14 @@ func (a *Administrator) AlterChannel(
 	ctx context.Context,
 	profileName, channelName string,
 	req mqadmin.AlterChannelRequest,
-) (mqadmin.ChannelMutationResult, error) {
-	if err := mqadmin.ValidateAlterChannelRequest(channelName, req); err != nil {
+) (result mqadmin.ChannelMutationResult, err error) {
+	ctx, done := beginMutationAudit(ctx, a.pool, profileName, "alter_channel", "channel", channelName)
+	defer func() { done(err) }()
+
+	if err = mqadmin.ValidateAlterChannelRequest(channelName, req); err != nil {
 		return mqadmin.ChannelMutationResult{}, err
 	}
-	client, profile, hook, err := a.authorizedMutation(profileName, "alter_channel")
+	client, profile, hook, err := a.authorizedMutation(ctx, profileName, "alter_channel")
 	if err != nil {
 		return mqadmin.ChannelMutationResult{}, err
 	}
@@ -64,7 +70,7 @@ func (a *Administrator) AlterChannel(
 	if err != nil {
 		return mqadmin.ChannelMutationResult{}, err
 	}
-	result, err := client.AlterChannel(ctx, channelName, req)
+	result, err = client.AlterChannel(ctx, channelName, req)
 	if err != nil {
 		return mqadmin.ChannelMutationResult{}, err
 	}
@@ -77,11 +83,14 @@ func (a *Administrator) AlterChannel(
 func (a *Administrator) DeleteChannel(
 	ctx context.Context,
 	profileName, channelName string,
-) (mqadmin.ChannelMutationResult, error) {
-	if err := mqadmin.ValidateDeleteChannelRequest(channelName); err != nil {
+) (result mqadmin.ChannelMutationResult, err error) {
+	ctx, done := beginMutationAudit(ctx, a.pool, profileName, "delete_channel", "channel", channelName)
+	defer func() { done(err) }()
+
+	if err = mqadmin.ValidateDeleteChannelRequest(channelName); err != nil {
 		return mqadmin.ChannelMutationResult{}, err
 	}
-	client, profile, hook, err := a.authorizedMutation(profileName, "delete_channel")
+	client, profile, hook, err := a.authorizedMutation(ctx, profileName, "delete_channel")
 	if err != nil {
 		return mqadmin.ChannelMutationResult{}, err
 	}
@@ -95,7 +104,7 @@ func (a *Administrator) DeleteChannel(
 	if err != nil {
 		return mqadmin.ChannelMutationResult{}, err
 	}
-	result, err := client.DeleteChannel(ctx, channelName)
+	result, err = client.DeleteChannel(ctx, channelName)
 	if err != nil {
 		return mqadmin.ChannelMutationResult{}, err
 	}
@@ -109,11 +118,14 @@ func (a *Administrator) DefineCHLAUTH(
 	ctx context.Context,
 	profileName string,
 	req mqadmin.DefineCHLAUTHRequest,
-) (mqadmin.CHLAUTHMutationResult, error) {
-	if err := mqadmin.ValidateDefineCHLAUTHRequest(req); err != nil {
+) (result mqadmin.CHLAUTHMutationResult, err error) {
+	ctx, done := beginMutationAudit(ctx, a.pool, profileName, "define_chlauth", "chlauth", req.Target.ChannelName)
+	defer func() { done(err) }()
+
+	if err = mqadmin.ValidateDefineCHLAUTHRequest(req); err != nil {
 		return mqadmin.CHLAUTHMutationResult{}, err
 	}
-	client, profile, hook, err := a.authorizedMutation(profileName, "define_chlauth")
+	client, profile, hook, err := a.authorizedMutation(ctx, profileName, "define_chlauth")
 	if err != nil {
 		return mqadmin.CHLAUTHMutationResult{}, err
 	}
@@ -122,7 +134,7 @@ func (a *Administrator) DefineCHLAUTH(
 	if err != nil {
 		return mqadmin.CHLAUTHMutationResult{}, err
 	}
-	result, err := client.DefineCHLAUTH(ctx, req)
+	result, err = client.DefineCHLAUTH(ctx, req)
 	if err != nil {
 		return mqadmin.CHLAUTHMutationResult{}, err
 	}
@@ -136,11 +148,14 @@ func (a *Administrator) AlterCHLAUTH(
 	ctx context.Context,
 	profileName string,
 	req mqadmin.AlterCHLAUTHRequest,
-) (mqadmin.CHLAUTHMutationResult, error) {
-	if err := mqadmin.ValidateAlterCHLAUTHRequest(req); err != nil {
+) (result mqadmin.CHLAUTHMutationResult, err error) {
+	ctx, done := beginMutationAudit(ctx, a.pool, profileName, "alter_chlauth", "chlauth", req.Target.ChannelName)
+	defer func() { done(err) }()
+
+	if err = mqadmin.ValidateAlterCHLAUTHRequest(req); err != nil {
 		return mqadmin.CHLAUTHMutationResult{}, err
 	}
-	client, profile, hook, err := a.authorizedMutation(profileName, "alter_chlauth")
+	client, profile, hook, err := a.authorizedMutation(ctx, profileName, "alter_chlauth")
 	if err != nil {
 		return mqadmin.CHLAUTHMutationResult{}, err
 	}
@@ -149,7 +164,7 @@ func (a *Administrator) AlterCHLAUTH(
 	if err != nil {
 		return mqadmin.CHLAUTHMutationResult{}, err
 	}
-	result, err := client.AlterCHLAUTH(ctx, req)
+	result, err = client.AlterCHLAUTH(ctx, req)
 	if err != nil {
 		return mqadmin.CHLAUTHMutationResult{}, err
 	}
@@ -163,11 +178,14 @@ func (a *Administrator) DeleteCHLAUTH(
 	ctx context.Context,
 	profileName string,
 	target mqadmin.CHLAUTHTarget,
-) (mqadmin.CHLAUTHMutationResult, error) {
-	if err := mqadmin.ValidateDeleteCHLAUTHRequest(target); err != nil {
+) (result mqadmin.CHLAUTHMutationResult, err error) {
+	ctx, done := beginMutationAudit(ctx, a.pool, profileName, "delete_chlauth", "chlauth", target.ChannelName)
+	defer func() { done(err) }()
+
+	if err = mqadmin.ValidateDeleteCHLAUTHRequest(target); err != nil {
 		return mqadmin.CHLAUTHMutationResult{}, err
 	}
-	client, profile, hook, err := a.authorizedMutation(profileName, "delete_chlauth")
+	client, profile, hook, err := a.authorizedMutation(ctx, profileName, "delete_chlauth")
 	if err != nil {
 		return mqadmin.CHLAUTHMutationResult{}, err
 	}
@@ -176,7 +194,7 @@ func (a *Administrator) DeleteCHLAUTH(
 	if err != nil {
 		return mqadmin.CHLAUTHMutationResult{}, err
 	}
-	result, err := client.DeleteCHLAUTH(ctx, target)
+	result, err = client.DeleteCHLAUTH(ctx, target)
 	if err != nil {
 		return mqadmin.CHLAUTHMutationResult{}, err
 	}
@@ -190,11 +208,14 @@ func (a *Administrator) DefineAuthrec(
 	ctx context.Context,
 	profileName string,
 	req mqadmin.DefineAuthrecRequest,
-) (mqadmin.AuthrecMutationResult, error) {
-	if err := mqadmin.ValidateDefineAuthrecRequest(req); err != nil {
+) (result mqadmin.AuthrecMutationResult, err error) {
+	ctx, done := beginMutationAudit(ctx, a.pool, profileName, "define_authrec", "authrec", req.Target.Entity)
+	defer func() { done(err) }()
+
+	if err = mqadmin.ValidateDefineAuthrecRequest(req); err != nil {
 		return mqadmin.AuthrecMutationResult{}, err
 	}
-	client, profile, hook, err := a.authorizedMutation(profileName, "define_authrec")
+	client, profile, hook, err := a.authorizedMutation(ctx, profileName, "define_authrec")
 	if err != nil {
 		return mqadmin.AuthrecMutationResult{}, err
 	}
@@ -203,7 +224,7 @@ func (a *Administrator) DefineAuthrec(
 	if err != nil {
 		return mqadmin.AuthrecMutationResult{}, err
 	}
-	result, err := client.DefineAuthrec(ctx, req)
+	result, err = client.DefineAuthrec(ctx, req)
 	if err != nil {
 		return mqadmin.AuthrecMutationResult{}, err
 	}
@@ -217,11 +238,14 @@ func (a *Administrator) AlterAuthrec(
 	ctx context.Context,
 	profileName string,
 	req mqadmin.AlterAuthrecRequest,
-) (mqadmin.AuthrecMutationResult, error) {
-	if err := mqadmin.ValidateAlterAuthrecRequest(req); err != nil {
+) (result mqadmin.AuthrecMutationResult, err error) {
+	ctx, done := beginMutationAudit(ctx, a.pool, profileName, "alter_authrec", "authrec", req.Target.Entity)
+	defer func() { done(err) }()
+
+	if err = mqadmin.ValidateAlterAuthrecRequest(req); err != nil {
 		return mqadmin.AuthrecMutationResult{}, err
 	}
-	client, profile, hook, err := a.authorizedMutation(profileName, "alter_authrec")
+	client, profile, hook, err := a.authorizedMutation(ctx, profileName, "alter_authrec")
 	if err != nil {
 		return mqadmin.AuthrecMutationResult{}, err
 	}
@@ -230,7 +254,7 @@ func (a *Administrator) AlterAuthrec(
 	if err != nil {
 		return mqadmin.AuthrecMutationResult{}, err
 	}
-	result, err := client.AlterAuthrec(ctx, req)
+	result, err = client.AlterAuthrec(ctx, req)
 	if err != nil {
 		return mqadmin.AuthrecMutationResult{}, err
 	}
@@ -244,11 +268,14 @@ func (a *Administrator) DeleteAuthrec(
 	ctx context.Context,
 	profileName string,
 	target mqadmin.AuthrecTarget,
-) (mqadmin.AuthrecMutationResult, error) {
-	if err := mqadmin.ValidateDeleteAuthrecRequest(target); err != nil {
+) (result mqadmin.AuthrecMutationResult, err error) {
+	ctx, done := beginMutationAudit(ctx, a.pool, profileName, "delete_authrec", "authrec", target.Entity)
+	defer func() { done(err) }()
+
+	if err = mqadmin.ValidateDeleteAuthrecRequest(target); err != nil {
 		return mqadmin.AuthrecMutationResult{}, err
 	}
-	client, profile, hook, err := a.authorizedMutation(profileName, "delete_authrec")
+	client, profile, hook, err := a.authorizedMutation(ctx, profileName, "delete_authrec")
 	if err != nil {
 		return mqadmin.AuthrecMutationResult{}, err
 	}
@@ -257,7 +284,7 @@ func (a *Administrator) DeleteAuthrec(
 	if err != nil {
 		return mqadmin.AuthrecMutationResult{}, err
 	}
-	result, err := client.DeleteAuthrec(ctx, target)
+	result, err = client.DeleteAuthrec(ctx, target)
 	if err != nil {
 		return mqadmin.AuthrecMutationResult{}, err
 	}

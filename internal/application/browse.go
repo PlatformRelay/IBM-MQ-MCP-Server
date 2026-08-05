@@ -3,9 +3,11 @@ package application
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/collection"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/messaging"
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/observability/audit"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/policy"
 )
 
@@ -24,11 +26,18 @@ func (b *Browser) BrowseQueueMessages(
 	ctx context.Context,
 	profileName, queueName string,
 	req messaging.BrowseRequest,
-) (collection.Page[messaging.MessageRecord], error) {
-	if err := messaging.ValidateBrowseCount(req.Count); err != nil {
+) (page collection.Page[messaging.MessageRecord], err error) {
+	ctx = audit.EnsureCorrelationID(ctx)
+	start := time.Now()
+	target := audit.Target{Kind: "queue", Name: queueName}
+	defer func() {
+		recordSensitiveOperation(ctx, b.pool, profileName, "browse_queue_messages", target, start, err)
+	}()
+
+	if err = messaging.ValidateBrowseCount(req.Count); err != nil {
 		return collection.Page[messaging.MessageRecord]{}, err
 	}
-	if err := messaging.ValidateMaxPayloadBytes(req.MaxPayloadBytes); err != nil {
+	if err = messaging.ValidateMaxPayloadBytes(req.MaxPayloadBytes); err != nil {
 		return collection.Page[messaging.MessageRecord]{}, err
 	}
 	req.Count = messaging.NormalizeBrowseCount(req.Count)
@@ -38,11 +47,12 @@ func (b *Browser) BrowseQueueMessages(
 	if queueName == "" {
 		return collection.Page[messaging.MessageRecord]{}, fmt.Errorf("queue name is required")
 	}
-	client, err := b.authorizedMessaging(profileName)
+	var client messaging.Client
+	client, err = b.authorizedMessaging(ctx, profileName)
 	if err != nil {
 		return collection.Page[messaging.MessageRecord]{}, err
 	}
-	page, err := client.BrowseMessages(ctx, queueName, req)
+	page, err = client.BrowseMessages(ctx, queueName, req)
 	if err != nil {
 		return collection.Page[messaging.MessageRecord]{}, err
 	}
@@ -55,7 +65,7 @@ func (b *Browser) BrowseQueueMessages(
 	return page, nil
 }
 
-func (b *Browser) authorizedMessaging(profileName string) (messaging.Client, error) {
+func (b *Browser) authorizedMessaging(ctx context.Context, profileName string) (messaging.Client, error) {
 	if b.pool == nil {
 		return nil, fmt.Errorf("profile pool is not configured")
 	}
@@ -63,7 +73,7 @@ func (b *Browser) authorizedMessaging(profileName string) (messaging.Client, err
 	if err != nil {
 		return nil, err
 	}
-	if authErr := b.pool.gate.Authorize(profile, policy.Browse, "browse_queue_messages"); authErr != nil {
+	if authErr := b.pool.gate.Authorize(ctx, profile, policy.Browse, "browse_queue_messages"); authErr != nil {
 		return nil, authErr
 	}
 	return b.pool.messagingClient(profileName)

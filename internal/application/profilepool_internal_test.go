@@ -1,6 +1,7 @@
 package application
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -25,11 +26,11 @@ func TestProfilePoolIsolatesDistinctProfiles(t *testing.T) {
 	t.Setenv("IBM_MQ_MCP_DEV_SECRET", "dev-user:dev-pass")
 	pool := newTestPool(t, twoProfileYAML())
 
-	prodAdmin, err := pool.Admin("prod", policy.Administer)
+	prodAdmin, err := pool.Admin(context.Background(), "prod", policy.Administer)
 	if err != nil {
 		t.Fatal(err)
 	}
-	devAdmin, err := pool.Admin("dev", policy.Administer)
+	devAdmin, err := pool.Admin(context.Background(), "dev", policy.Administer)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,11 +41,11 @@ func TestProfilePoolIsolatesDistinctProfiles(t *testing.T) {
 		t.Fatalf("profile names = %q / %q", prodAdmin.ProfileName(), devAdmin.ProfileName())
 	}
 
-	prodMsg, err := pool.Messaging("prod", policy.Produce)
+	prodMsg, err := pool.Messaging(context.Background(), "prod", policy.Produce)
 	if err != nil {
 		t.Fatal(err)
 	}
-	devMsg, err := pool.Messaging("dev", policy.Produce)
+	devMsg, err := pool.Messaging(context.Background(), "dev", policy.Produce)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,10 +59,10 @@ func TestProfilePoolIsolatesDistinctProfiles(t *testing.T) {
 	if err := pool.Close(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := pool.Admin("prod", policy.Administer); err == nil {
+	if _, err := pool.Admin(context.Background(), "prod", policy.Administer); err == nil {
 		t.Fatal("expected prod admin error after pool close")
 	}
-	if _, err := pool.Admin("dev", policy.Administer); err == nil {
+	if _, err := pool.Admin(context.Background(), "dev", policy.Administer); err == nil {
 		t.Fatal("expected dev admin error after pool close")
 	}
 }
@@ -70,11 +71,11 @@ func TestProfilePoolReusesAdminClient(t *testing.T) {
 	t.Setenv("IBM_MQ_MCP_POOL_SECRET", "user:pass")
 	pool := newTestPool(t, basicProfileYAML("env:IBM_MQ_MCP_POOL_SECRET"))
 
-	first, err := pool.Admin("prod", policy.Administer)
+	first, err := pool.Admin(context.Background(), "prod", policy.Administer)
 	if err != nil {
 		t.Fatal(err)
 	}
-	second, err := pool.Admin("prod", policy.Administer)
+	second, err := pool.Admin(context.Background(), "prod", policy.Administer)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,11 +88,11 @@ func TestProfilePoolReusesMessagingClient(t *testing.T) {
 	t.Setenv("IBM_MQ_MCP_POOL_SECRET", "user:pass")
 	pool := newTestPool(t, basicProfileYAML("env:IBM_MQ_MCP_POOL_SECRET"))
 
-	first, err := pool.Messaging("prod", policy.Produce)
+	first, err := pool.Messaging(context.Background(), "prod", policy.Produce)
 	if err != nil {
 		t.Fatal(err)
 	}
-	second, err := pool.Messaging("prod", policy.Produce)
+	second, err := pool.Messaging(context.Background(), "prod", policy.Produce)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,13 +105,13 @@ func TestProfilePoolCloseRejectsFurtherUse(t *testing.T) {
 	t.Setenv("IBM_MQ_MCP_POOL_SECRET", "user:pass")
 	pool := newTestPool(t, basicProfileYAML("env:IBM_MQ_MCP_POOL_SECRET"))
 
-	if _, err := pool.Admin("prod", policy.Administer); err != nil {
+	if _, err := pool.Admin(context.Background(), "prod", policy.Administer); err != nil {
 		t.Fatal(err)
 	}
 	if err := pool.Close(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := pool.Admin("prod", policy.Administer); err == nil {
+	if _, err := pool.Admin(context.Background(), "prod", policy.Administer); err == nil {
 		t.Fatal("expected error after pool close")
 	} else if !strings.Contains(err.Error(), "closed") {
 		t.Fatalf("unexpected error: %v", err)
@@ -136,7 +137,7 @@ profiles:
       - produce
 `
 	pool := newTestPool(t, doc)
-	if _, err := pool.Admin("mtls", policy.Administer); err != nil {
+	if _, err := pool.Admin(context.Background(), "mtls", policy.Administer); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -144,14 +145,14 @@ profiles:
 func TestProfilePoolStoresBasicCredentials(t *testing.T) {
 	t.Setenv("IBM_MQ_MCP_POOL_SECRET", "alice:secret")
 	pool := newTestPool(t, basicProfileYAML("env:IBM_MQ_MCP_POOL_SECRET"))
-	if _, err := pool.Admin("prod", policy.Administer); err != nil {
+	if _, err := pool.Admin(context.Background(), "prod", policy.Administer); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestProfilePoolRejectsEmptyBasicSecret(t *testing.T) {
 	pool := newTestPool(t, basicProfileYAML("env:IBM_MQ_MCP_EMPTY_BASIC"))
-	if _, err := pool.Admin("prod", policy.Administer); err == nil {
+	if _, err := pool.Admin(context.Background(), "prod", policy.Administer); err == nil {
 		t.Fatal("expected empty basic secret error")
 	}
 }
@@ -159,7 +160,7 @@ func TestProfilePoolRejectsEmptyBasicSecret(t *testing.T) {
 func TestProfilePoolRejectsMalformedBasicSecret(t *testing.T) {
 	t.Setenv("IBM_MQ_MCP_BAD_BASIC", "not-valid-format")
 	pool := newTestPool(t, basicProfileYAML("env:IBM_MQ_MCP_BAD_BASIC"))
-	if _, err := pool.Admin("prod", policy.Administer); err == nil {
+	if _, err := pool.Admin(context.Background(), "prod", policy.Administer); err == nil {
 		t.Fatal("expected malformed basic secret error")
 	}
 }
@@ -168,7 +169,7 @@ func TestProfilePoolBasicAuthErrorsDoNotLeakSecret(t *testing.T) {
 	const secret = "super-secret-value"
 	t.Setenv("IBM_MQ_MCP_LEAK_BASIC", secret)
 	pool := newTestPool(t, basicProfileYAML("env:IBM_MQ_MCP_LEAK_BASIC"))
-	_, err := pool.Admin("prod", policy.Administer)
+	_, err := pool.Admin(context.Background(), "prod", policy.Administer)
 	if err == nil {
 		t.Fatal("expected malformed basic secret error")
 	}

@@ -26,11 +26,14 @@ func (a *Administrator) DefineQueue(
 	ctx context.Context,
 	profileName, queueName string,
 	req mqadmin.DefineQueueRequest,
-) (mqadmin.QueueMutationResult, error) {
-	if err := mqadmin.ValidateDefineQueueRequest(queueName, req); err != nil {
+) (result mqadmin.QueueMutationResult, err error) {
+	ctx, done := beginMutationAudit(ctx, a.pool, profileName, "define_queue", "queue", queueName)
+	defer func() { done(err) }()
+
+	if err = mqadmin.ValidateDefineQueueRequest(queueName, req); err != nil {
 		return mqadmin.QueueMutationResult{}, err
 	}
-	client, profile, hook, err := a.authorizedMutation(profileName, "define_queue")
+	client, profile, hook, err := a.authorizedMutation(ctx, profileName, "define_queue")
 	if err != nil {
 		return mqadmin.QueueMutationResult{}, err
 	}
@@ -44,7 +47,7 @@ func (a *Administrator) DefineQueue(
 	if err != nil {
 		return mqadmin.QueueMutationResult{}, err
 	}
-	result, err := client.DefineQueue(ctx, queueName, req)
+	result, err = client.DefineQueue(ctx, queueName, req)
 	if err != nil {
 		return mqadmin.QueueMutationResult{}, err
 	}
@@ -58,11 +61,14 @@ func (a *Administrator) AlterQueue(
 	ctx context.Context,
 	profileName, queueName string,
 	req mqadmin.AlterQueueRequest,
-) (mqadmin.QueueMutationResult, error) {
-	if err := mqadmin.ValidateAlterQueueRequest(queueName, req); err != nil {
+) (result mqadmin.QueueMutationResult, err error) {
+	ctx, done := beginMutationAudit(ctx, a.pool, profileName, "alter_queue", "queue", queueName)
+	defer func() { done(err) }()
+
+	if err = mqadmin.ValidateAlterQueueRequest(queueName, req); err != nil {
 		return mqadmin.QueueMutationResult{}, err
 	}
-	client, profile, hook, err := a.authorizedMutation(profileName, "alter_queue")
+	client, profile, hook, err := a.authorizedMutation(ctx, profileName, "alter_queue")
 	if err != nil {
 		return mqadmin.QueueMutationResult{}, err
 	}
@@ -76,7 +82,7 @@ func (a *Administrator) AlterQueue(
 	if err != nil {
 		return mqadmin.QueueMutationResult{}, err
 	}
-	result, err := client.AlterQueue(ctx, queueName, req)
+	result, err = client.AlterQueue(ctx, queueName, req)
 	if err != nil {
 		return mqadmin.QueueMutationResult{}, err
 	}
@@ -89,11 +95,14 @@ func (a *Administrator) AlterQueue(
 func (a *Administrator) DeleteQueue(
 	ctx context.Context,
 	profileName, queueName string,
-) (mqadmin.QueueMutationResult, error) {
-	if err := mqadmin.ValidateDeleteQueueRequest(queueName); err != nil {
+) (result mqadmin.QueueMutationResult, err error) {
+	ctx, done := beginMutationAudit(ctx, a.pool, profileName, "delete_queue", "queue", queueName)
+	defer func() { done(err) }()
+
+	if err = mqadmin.ValidateDeleteQueueRequest(queueName); err != nil {
 		return mqadmin.QueueMutationResult{}, err
 	}
-	client, profile, hook, err := a.authorizedMutation(profileName, "delete_queue")
+	client, profile, hook, err := a.authorizedMutation(ctx, profileName, "delete_queue")
 	if err != nil {
 		return mqadmin.QueueMutationResult{}, err
 	}
@@ -107,7 +116,7 @@ func (a *Administrator) DeleteQueue(
 	if err != nil {
 		return mqadmin.QueueMutationResult{}, err
 	}
-	result, err := client.DeleteQueue(ctx, queueName)
+	result, err = client.DeleteQueue(ctx, queueName)
 	if err != nil {
 		return mqadmin.QueueMutationResult{}, err
 	}
@@ -117,6 +126,7 @@ func (a *Administrator) DeleteQueue(
 }
 
 func (a *Administrator) authorizedMutation(
+	ctx context.Context,
 	profileName string, operation string,
 ) (mqadmin.Client, catalog.Profile, *coexistence.PreMutationHook, error) {
 	if a.pool == nil {
@@ -126,7 +136,7 @@ func (a *Administrator) authorizedMutation(
 	if err != nil {
 		return nil, catalog.Profile{}, nil, err
 	}
-	if authErr := a.pool.gate.Authorize(profile, policy.Administer, operation); authErr != nil {
+	if authErr := a.pool.gate.Authorize(ctx, profile, policy.Administer, operation); authErr != nil {
 		return nil, catalog.Profile{}, nil, authErr
 	}
 	client, err := a.pool.adminClient(profileName)

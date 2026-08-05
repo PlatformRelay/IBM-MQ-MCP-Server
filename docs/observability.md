@@ -57,8 +57,33 @@ JSON logs on **stderr** via the default slog handler with:
 - Central redaction of secret-like field names
 - Sanitization of tool-argument values to resist log injection
 
-Log field names for audit and request correlation will expand with
-[SEC-002](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/agent-context/stories/SEC-002.md).
+## Audit trail (SEC-002)
+
+Sensitive MCP operations emit **payload-safe audit events** on stderr as structured
+JSON (`msg=audit`). The v0 sink is slog; credentials and message payloads are
+**structurally excluded** from the event schema — only allowlisted fields mapped in
+`internal/observability/audit` reach the log line.
+
+| Field | Description |
+| --- | --- |
+| `kind` | `policy_decision` (POL-001 outcome) or `operation` (MQ tool result) |
+| `correlationId` | Joins MCP request → policy decision → MQ call |
+| `profile` | Connection profile name |
+| `operation` | Tool/operation identity (e.g. `browse_queue_messages`) |
+| `capability` | Required capability on policy events |
+| `policyGranted` | Grant outcome on policy events |
+| `targetKind` / `targetName` | Object acted on (queue, channel, mqsc, …) — no payloads |
+| `outcome` | `success`, `denied`, or `error` |
+| `latencyMs` | Operation duration on `operation` events |
+| `commandRedacted` | Redacted MQSC text on allowed `execute_mqsc` only |
+
+**Failure policy:** audit sink errors are **fail-open** — logging failures never block
+MCP or MQ operations. Optional fail-closed behaviour for mutation classes may be added
+later behind an explicit marker.
+
+Policy denials and allowed sensitive paths (browse, produce, consume, admin mutations,
+raw MQSC) are both audited. POL-001 emits decision events consumed by the audit
+recorder; there is no second audit path.
 
 ## OpenTelemetry
 

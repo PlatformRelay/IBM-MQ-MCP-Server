@@ -19,6 +19,7 @@ import (
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/application"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/config/catalog"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/mcpserver"
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/observability/audit"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/observability/logging"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/observability/metrics"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/observability/runtime"
@@ -59,7 +60,9 @@ func main() {
 	defer stop()
 
 	rt := runtime.New()
-	pool, configValid, err := loadProfiles(resolveConfigPath(*configFlag), *strictStartup)
+	metricReg := metrics.New()
+	auditRec := audit.NewSlogRecorder(logger)
+	pool, configValid, err := loadProfiles(resolveConfigPath(*configFlag), *strictStartup, auditRec, metricReg)
 	if err != nil {
 		slog.Error("configuration failed", slog.String("error", err.Error()))
 		os.Exit(1)
@@ -72,8 +75,6 @@ func main() {
 		}()
 	}
 	rt.SetConfigValid(configValid)
-
-	metricReg := metrics.New()
 
 	opsAddr := resolveOpsAddr(*opsAddrFlag)
 	if opsAddr != "" {
@@ -182,7 +183,12 @@ func resolveEnableMQSC(flagValue bool) bool {
 	}
 }
 
-func loadProfiles(path string, strictStartup bool) (*application.ProfilePool, bool, error) {
+func loadProfiles(
+	path string,
+	strictStartup bool,
+	auditRec audit.Recorder,
+	metricReg *metrics.Registry,
+) (*application.ProfilePool, bool, error) {
 	if path == "" {
 		return nil, true, nil
 	}
@@ -194,7 +200,12 @@ func loadProfiles(path string, strictStartup bool) (*application.ProfilePool, bo
 	if strictStartup && !validation.AllValid() {
 		return nil, false, firstValidationError(validation)
 	}
-	pool := application.NewProfilePool(cat, validation, nil, nil,
+	gate := application.NewPolicyGate(
+		application.WithRecorder(metricReg),
+		application.WithPolicyAuditRecorder(auditRec),
+	)
+	pool := application.NewProfilePool(cat, validation, nil, gate,
+		application.WithAuditRecorder(auditRec),
 		application.WithAdminFactory(mqweb.NewAdminClient),
 		application.WithMessagingFactory(mqweb.NewMessagingClient),
 	)

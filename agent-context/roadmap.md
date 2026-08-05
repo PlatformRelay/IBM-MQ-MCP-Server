@@ -115,11 +115,11 @@ requires ADR-0007.
 [Change](../openspec/changes/remote-access-and-operability/proposal.md)
 
 ### SEC-001 — Secure remote MCP transport and hardening
-🛑 Blocked · Requires ADR-0006 deployment and client-identity decisions.
+✅ Done · ADR-0006; lane/sec-001 @ 81a7f59.
 [Story](stories/SEC-001.md)
 
 ### SEC-002 — Payload-safe audit trail
-🛑 Blocked · Requires ADR-0006 and POL-001 decision events.
+✅ Done · lane/sec-002.
 [Story](stories/SEC-002.md)
 
 ### OBS-001 — Health, readiness, metrics, and structured logs

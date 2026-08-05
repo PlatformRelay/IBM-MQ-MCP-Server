@@ -81,8 +81,8 @@ Reject for v0:
   typed tools.
 - Server restart is required to toggle `--enable-mqsc`; profile-only grants are
   insufficient to expose the tool.
-- Full SEC-002 audit schema integration is deferred; v0 uses structured slog
-  events as the interim audit hook.
+- Full SEC-002 audit schema integration replaces the interim hook; structured slog
+  events remain the v0 sink.
 
 ## Alternatives
 

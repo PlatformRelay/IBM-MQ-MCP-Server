@@ -1,6 +1,7 @@
 package application_test
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -46,7 +47,7 @@ profiles:
 	gate := application.NewPolicyGate()
 	pool := newPool(t, cat, gate, factory)
 
-	_, err = pool.Admin("prod", policy.Administer)
+	_, err = pool.Admin(context.Background(), "prod", policy.Administer)
 	if err == nil {
 		t.Fatal("expected policy denial")
 	}
@@ -82,7 +83,7 @@ profiles:
 	pool := application.NewProfilePool(cat, cat.Validate(), secrets.NewResolver(), gate)
 	t.Cleanup(func() { _ = pool.Close() })
 
-	_, err = pool.Messaging("prod", policy.Produce)
+	_, err = pool.Messaging(context.Background(), "prod", policy.Produce)
 	if err == nil {
 		t.Fatal("expected policy denial")
 	}
@@ -115,7 +116,7 @@ profiles:
 	}
 	pool := newPool(t, cat, nil, factory)
 
-	client, err := pool.Admin("prod", policy.Administer)
+	client, err := pool.Admin(context.Background(), "prod", policy.Administer)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -143,7 +144,7 @@ profiles:
 	pool := application.NewProfilePool(cat, cat.Validate(), secrets.NewResolver(), nil)
 	t.Cleanup(func() { _ = pool.Close() })
 
-	if err := pool.Authorize("prod", policy.Produce, "future-tool"); err == nil {
+	if err := pool.Authorize(context.Background(), "prod", policy.Produce, "future-tool"); err == nil {
 		t.Fatal("expected denial")
 	}
 }

@@ -3,11 +3,11 @@ package application
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/config/catalog"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/mqadmin"
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/observability/audit"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/policy"
 )
 
@@ -25,27 +25,39 @@ func NewMQSCExecutor(pool *ProfilePool) *MQSCExecutor {
 func (e *MQSCExecutor) ExecuteRawMQSC(
 	ctx context.Context,
 	profileName, command string,
-) (mqadmin.RawMQSCResult, error) {
-	if err := mqadmin.ValidateRawMQSCCommand(command); err != nil {
+) (result mqadmin.RawMQSCResult, err error) {
+	ctx = audit.EnsureCorrelationID(ctx)
+	start := time.Now()
+	redacted := mqadmin.RedactMQSCCommandText(command)
+	defer func() {
+		recordSensitiveOperation(
+			ctx, e.pool, profileName, "execute_mqsc",
+			audit.Target{Kind: "mqsc", Name: "raw"},
+			start, err, withCommandRedacted(redacted),
+		)
+	}()
+
+	if err = mqadmin.ValidateRawMQSCCommand(command); err != nil {
 		return mqadmin.RawMQSCResult{}, err
 	}
-	client, profile, err := e.authorized(profileName)
+	var client mqadmin.Client
+	var profile catalog.Profile
+	client, profile, err = e.authorized(ctx, profileName)
 	if err != nil {
 		return mqadmin.RawMQSCResult{}, err
 	}
-	e.audit(profileName, command)
-	result, err := client.ExecuteRawMQSC(ctx, command)
+	result, err = client.ExecuteRawMQSC(ctx, command)
 	if err != nil {
 		return mqadmin.RawMQSCResult{}, err
 	}
 	result.Profile = profileName
 	result.QueueManager = profile.QueueManager
-	result.Command = mqadmin.RedactMQSCCommandText(command)
+	result.Command = redacted
 	result.CompletedAt = time.Now().UTC()
 	return result, nil
 }
 
-func (e *MQSCExecutor) authorized(profileName string) (mqadmin.Client, catalog.Profile, error) {
+func (e *MQSCExecutor) authorized(ctx context.Context, profileName string) (mqadmin.Client, catalog.Profile, error) {
 	if e.pool == nil {
 		return nil, catalog.Profile{}, fmt.Errorf("profile pool is not configured")
 	}
@@ -53,7 +65,7 @@ func (e *MQSCExecutor) authorized(profileName string) (mqadmin.Client, catalog.P
 	if err != nil {
 		return nil, catalog.Profile{}, err
 	}
-	if authErr := e.pool.gate.Authorize(profile, policy.ExecuteMQSC, "execute_mqsc"); authErr != nil {
+	if authErr := e.pool.gate.Authorize(ctx, profile, policy.ExecuteMQSC, "execute_mqsc"); authErr != nil {
 		return nil, catalog.Profile{}, authErr
 	}
 	client, err := e.pool.adminClient(profileName)
@@ -61,12 +73,4 @@ func (e *MQSCExecutor) authorized(profileName string) (mqadmin.Client, catalog.P
 		return nil, catalog.Profile{}, err
 	}
 	return client, profile, nil
-}
-
-func (e *MQSCExecutor) audit(profileName, command string) {
-	slog.Info("mqsc execution",
-		slog.String("profile", profileName),
-		slog.String("operation", "execute_mqsc"),
-		slog.String("command", mqadmin.RedactMQSCCommandText(command)),
-	)
 }

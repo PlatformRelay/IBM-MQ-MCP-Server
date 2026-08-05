@@ -3,8 +3,10 @@ package application
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/messaging"
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/observability/audit"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/policy"
 )
 
@@ -23,21 +25,30 @@ func (p *Producer) PutQueueMessage(
 	ctx context.Context,
 	profileName, queueName string,
 	req messaging.PutRequest,
-) (messaging.PutResult, error) {
+) (result messaging.PutResult, err error) {
+	ctx = audit.EnsureCorrelationID(ctx)
+	start := time.Now()
+	target := audit.Target{Kind: "queue", Name: queueName}
+	defer func() {
+		recordSensitiveOperation(ctx, p.pool, profileName, "put_queue_message", target, start, err)
+	}()
+
 	if queueName == "" {
 		return messaging.PutResult{}, fmt.Errorf("queue name is required")
 	}
-	if _, _, err := messaging.PreparePutPayload(req.ContentType, req.Payload); err != nil {
+	if _, _, err = messaging.PreparePutPayload(req.ContentType, req.Payload); err != nil {
 		return messaging.PutResult{}, err
 	}
-	client, err := p.authorizedMessaging(profileName)
+	var client messaging.Client
+	client, err = p.authorizedMessaging(ctx, profileName)
 	if err != nil {
 		return messaging.PutResult{}, err
 	}
-	return client.PutMessage(ctx, queueName, req)
+	result, err = client.PutMessage(ctx, queueName, req)
+	return result, err
 }
 
-func (p *Producer) authorizedMessaging(profileName string) (messaging.Client, error) {
+func (p *Producer) authorizedMessaging(ctx context.Context, profileName string) (messaging.Client, error) {
 	if p.pool == nil {
 		return nil, fmt.Errorf("profile pool is not configured")
 	}
@@ -45,7 +56,7 @@ func (p *Producer) authorizedMessaging(profileName string) (messaging.Client, er
 	if err != nil {
 		return nil, err
 	}
-	if authErr := p.pool.gate.Authorize(profile, policy.Produce, "put_queue_message"); authErr != nil {
+	if authErr := p.pool.gate.Authorize(ctx, profile, policy.Produce, "put_queue_message"); authErr != nil {
 		return nil, authErr
 	}
 	return p.pool.messagingClient(profileName)

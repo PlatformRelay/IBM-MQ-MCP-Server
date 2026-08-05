@@ -1,6 +1,7 @@
 package application_test
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -41,7 +42,7 @@ profiles:
 	}
 	pool := newPool(t, cat, nil, mqweb.NewAdminClient)
 
-	_, err = pool.Admin(testProfileProd, policy.Administer)
+	_, err = pool.Admin(context.Background(), testProfileProd, policy.Administer)
 	if err == nil {
 		t.Fatal("expected missing secret error on first use")
 	}
@@ -68,7 +69,7 @@ profiles:
 	}
 	pool := newPool(t, cat, nil, testAdminFactory())
 
-	if _, err := pool.Admin("bad", policy.Administer); err == nil {
+	if _, err := pool.Admin(context.Background(), "bad", policy.Administer); err == nil {
 		t.Fatal("expected validation error")
 	}
 }
@@ -94,7 +95,7 @@ profiles:
 	}
 	pool := newPool(t, cat, nil, testAdminFactory())
 
-	client, err := pool.Admin(testProfileProd, policy.Administer)
+	client, err := pool.Admin(context.Background(), testProfileProd, policy.Administer)
 	if err != nil {
 		t.Fatal(err)
 	}

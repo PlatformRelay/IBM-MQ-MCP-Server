@@ -2,6 +2,7 @@
 package application
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/config/secrets"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/messaging"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/mqadmin"
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/observability/audit"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/policy"
 )
 
@@ -54,6 +56,7 @@ type ProfilePool struct {
 	validation       catalog.ValidationResult
 	resolver         *secrets.Resolver
 	gate             *PolicyGate
+	auditRecorder    audit.Recorder
 	adminFactory     AdminClientFactory
 	messagingFactory MessagingClientFactory
 
@@ -77,6 +80,13 @@ func WithAdminFactory(factory AdminClientFactory) ProfilePoolOption {
 func WithMessagingFactory(factory MessagingClientFactory) ProfilePoolOption {
 	return func(p *ProfilePool) {
 		p.messagingFactory = factory
+	}
+}
+
+// WithAuditRecorder attaches the SEC-002 audit sink for operation outcome events.
+func WithAuditRecorder(recorder audit.Recorder) ProfilePoolOption {
+	return func(p *ProfilePool) {
+		p.auditRecorder = recorder
 	}
 }
 
@@ -105,6 +115,9 @@ func NewProfilePool(
 	for _, opt := range opts {
 		opt(p)
 	}
+	if p.auditRecorder != nil {
+		p.gate.auditRecorder = p.auditRecorder
+	}
 	return p
 }
 
@@ -114,33 +127,37 @@ func (p *ProfilePool) Gate() *PolicyGate {
 }
 
 // Authorize checks capability for profile without resolving secrets or MQ clients.
-func (p *ProfilePool) Authorize(name string, required policy.Capability, operation string) error {
+func (p *ProfilePool) Authorize(ctx context.Context, name string, required policy.Capability, operation string) error {
 	profile, err := p.requireProfile(name)
 	if err != nil {
 		return err
 	}
-	return p.gate.Authorize(profile, required, operation)
+	return p.gate.Authorize(ctx, profile, required, operation)
 }
 
 // Admin returns the administration client for a profile after capability authorization.
-func (p *ProfilePool) Admin(name string, required policy.Capability) (mqadmin.Client, error) {
+func (p *ProfilePool) Admin(ctx context.Context, name string, required policy.Capability) (mqadmin.Client, error) {
 	profile, err := p.requireProfile(name)
 	if err != nil {
 		return nil, err
 	}
-	if err := p.gate.Authorize(profile, required, "mqadmin"); err != nil {
+	if err := p.gate.Authorize(ctx, profile, required, "mqadmin"); err != nil {
 		return nil, err
 	}
 	return p.adminClient(name)
 }
 
 // Messaging returns the messaging client for a profile after capability authorization.
-func (p *ProfilePool) Messaging(name string, required policy.Capability) (messaging.Client, error) {
+func (p *ProfilePool) Messaging(
+	ctx context.Context,
+	name string,
+	required policy.Capability,
+) (messaging.Client, error) {
 	profile, err := p.requireProfile(name)
 	if err != nil {
 		return nil, err
 	}
-	if err := p.gate.Authorize(profile, required, "messaging"); err != nil {
+	if err := p.gate.Authorize(ctx, profile, required, "messaging"); err != nil {
 		return nil, err
 	}
 	return p.messagingClient(name)

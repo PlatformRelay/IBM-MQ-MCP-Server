@@ -63,7 +63,7 @@ func (i *Inspector) ListProfiles() []ProfileSummary {
 
 // QueueManagerStatus checks live queue manager identity after inspect authorization.
 func (i *Inspector) QueueManagerStatus(ctx context.Context, profileName string) (mqadmin.QueueManagerStatus, error) {
-	client, err := i.authorizedAdmin(profileName, "queue_manager_status")
+	client, err := i.authorizedAdmin(ctx, profileName, "queue_manager_status")
 	if err != nil {
 		return mqadmin.QueueManagerStatus{}, err
 	}
@@ -81,7 +81,7 @@ func (i *Inspector) ListQueues(
 		return collection.Page[mqadmin.QueueSummary]{}, err
 	}
 	req.Limit = collection.NormalizeLimit(req.Limit)
-	client, err := i.authorizedAdmin(profileName, "list_queues")
+	client, err := i.authorizedAdmin(ctx, profileName, "list_queues")
 	if err != nil {
 		return collection.Page[mqadmin.QueueSummary]{}, err
 	}
@@ -90,7 +90,7 @@ func (i *Inspector) ListQueues(
 
 // GetQueue returns queue definition and status after inspect authorization.
 func (i *Inspector) GetQueue(ctx context.Context, profileName, queueName string) (mqadmin.QueueDetail, error) {
-	client, err := i.authorizedAdmin(profileName, "get_queue")
+	client, err := i.authorizedAdmin(ctx, profileName, "get_queue")
 	if err != nil {
 		return mqadmin.QueueDetail{}, err
 	}
@@ -107,7 +107,7 @@ func (i *Inspector) ListChannels(
 		return collection.Page[mqadmin.ChannelSummary]{}, err
 	}
 	req.Limit = collection.NormalizeLimit(req.Limit)
-	client, err := i.authorizedAdmin(profileName, "list_channels")
+	client, err := i.authorizedAdmin(ctx, profileName, "list_channels")
 	if err != nil {
 		return collection.Page[mqadmin.ChannelSummary]{}, err
 	}
@@ -116,7 +116,7 @@ func (i *Inspector) ListChannels(
 
 // GetChannel returns channel definition after inspect authorization.
 func (i *Inspector) GetChannel(ctx context.Context, profileName, channelName string) (mqadmin.ChannelDetail, error) {
-	client, err := i.authorizedAdmin(profileName, "get_channel")
+	client, err := i.authorizedAdmin(ctx, profileName, "get_channel")
 	if err != nil {
 		return mqadmin.ChannelDetail{}, err
 	}
@@ -128,7 +128,7 @@ func (i *Inspector) GetChannelStatus(
 	ctx context.Context,
 	profileName, channelName string,
 ) (mqadmin.ChannelStatus, error) {
-	client, err := i.authorizedAdmin(profileName, "get_channel_status")
+	client, err := i.authorizedAdmin(ctx, profileName, "get_channel_status")
 	if err != nil {
 		return mqadmin.ChannelStatus{}, err
 	}
@@ -145,7 +145,7 @@ func (i *Inspector) ListListeners(
 		return collection.Page[mqadmin.ListenerSummary]{}, err
 	}
 	req.Limit = collection.NormalizeLimit(req.Limit)
-	client, err := i.authorizedAdmin(profileName, "list_listeners")
+	client, err := i.authorizedAdmin(ctx, profileName, "list_listeners")
 	if err != nil {
 		return collection.Page[mqadmin.ListenerSummary]{}, err
 	}
@@ -154,7 +154,7 @@ func (i *Inspector) ListListeners(
 
 // GetListener returns listener definition after inspect authorization.
 func (i *Inspector) GetListener(ctx context.Context, profileName, listenerName string) (mqadmin.ListenerDetail, error) {
-	client, err := i.authorizedAdmin(profileName, "get_listener")
+	client, err := i.authorizedAdmin(ctx, profileName, "get_listener")
 	if err != nil {
 		return mqadmin.ListenerDetail{}, err
 	}
@@ -166,7 +166,7 @@ func (i *Inspector) GetListenerStatus(
 	ctx context.Context,
 	profileName, listenerName string,
 ) (mqadmin.ListenerStatus, error) {
-	client, err := i.authorizedAdmin(profileName, "get_listener_status")
+	client, err := i.authorizedAdmin(ctx, profileName, "get_listener_status")
 	if err != nil {
 		return mqadmin.ListenerStatus{}, err
 	}
@@ -183,7 +183,7 @@ func (i *Inspector) ListSubscriptions(
 		return collection.Page[mqadmin.SubscriptionSummary]{}, err
 	}
 	req.Limit = collection.NormalizeLimit(req.Limit)
-	client, err := i.authorizedAdmin(profileName, "list_subscriptions")
+	client, err := i.authorizedAdmin(ctx, profileName, "list_subscriptions")
 	if err != nil {
 		return collection.Page[mqadmin.SubscriptionSummary]{}, err
 	}
@@ -195,7 +195,7 @@ func (i *Inspector) GetSubscription(
 	ctx context.Context,
 	profileName, subscriptionID string,
 ) (mqadmin.SubscriptionDetail, error) {
-	client, err := i.authorizedAdmin(profileName, "get_subscription")
+	client, err := i.authorizedAdmin(ctx, profileName, "get_subscription")
 	if err != nil {
 		return mqadmin.SubscriptionDetail{}, err
 	}
@@ -211,7 +211,7 @@ func (i *Inspector) CheckProfileConnectivity(
 	if err != nil {
 		return mqadmin.ConnectivityReport{}, err
 	}
-	if authErr := i.pool.gate.Authorize(profile, policy.Inspect, "check_profile_connectivity"); authErr != nil {
+	if authErr := i.pool.gate.Authorize(ctx, profile, policy.Inspect, "check_profile_connectivity"); authErr != nil {
 		return mqadmin.ConnectivityReport{}, authErr
 	}
 	start := time.Now()
@@ -258,12 +258,12 @@ func (i *Inspector) ListProfilesPage(limit int, cursor string) (collection.Page[
 	return page, nil
 }
 
-func (i *Inspector) authorizedAdmin(profileName, operation string) (mqadmin.Client, error) {
+func (i *Inspector) authorizedAdmin(ctx context.Context, profileName, operation string) (mqadmin.Client, error) {
 	profile, err := i.pool.requireProfile(profileName)
 	if err != nil {
 		return nil, err
 	}
-	if authErr := i.pool.gate.Authorize(profile, policy.Inspect, operation); authErr != nil {
+	if authErr := i.pool.gate.Authorize(ctx, profile, policy.Inspect, operation); authErr != nil {
 		return nil, authErr
 	}
 	return i.pool.adminClient(profileName)

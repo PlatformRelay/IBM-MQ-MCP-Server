@@ -1,17 +1,20 @@
 package application
 
 import (
+	"context"
 	"sync"
 
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/config/catalog"
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/observability/audit"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/policy"
 )
 
 // PolicyGate enforces deny-by-default capability checks before downstream I/O.
 type PolicyGate struct {
-	recorder  Recorder
-	decisions []policy.Decision
-	mu        sync.Mutex
+	recorder      Recorder
+	auditRecorder audit.Recorder
+	decisions     []policy.Decision
+	mu            sync.Mutex
 }
 
 // PolicyGateOption configures a PolicyGate.
@@ -21,6 +24,13 @@ type PolicyGateOption func(*PolicyGate)
 func WithRecorder(recorder Recorder) PolicyGateOption {
 	return func(g *PolicyGate) {
 		g.recorder = recorder
+	}
+}
+
+// WithPolicyAuditRecorder attaches the SEC-002 payload-safe audit sink to policy decisions.
+func WithPolicyAuditRecorder(recorder audit.Recorder) PolicyGateOption {
+	return func(g *PolicyGate) {
+		g.auditRecorder = recorder
 	}
 }
 
@@ -34,15 +44,22 @@ func NewPolicyGate(opts ...PolicyGateOption) *PolicyGate {
 }
 
 // Authorize checks profile grants for required before secret resolution or MQ I/O.
-func (g *PolicyGate) Authorize(profile catalog.Profile, required policy.Capability, operation string) error {
+func (g *PolicyGate) Authorize(
+	ctx context.Context,
+	profile catalog.Profile,
+	required policy.Capability,
+	operation string,
+) error {
+	ctx = audit.EnsureCorrelationID(ctx)
 	err := policy.Authorize(profile, required)
 	granted := err == nil
-	g.record(policy.Decision{
+	decision := policy.Decision{
 		Profile:   profile.Name,
 		Required:  required,
 		Granted:   granted,
 		Operation: operation,
-	})
+	}
+	g.record(ctx, decision)
 	return err
 }
 
@@ -55,10 +72,16 @@ func (g *PolicyGate) Decisions() []policy.Decision {
 	return out
 }
 
-func (g *PolicyGate) record(decision policy.Decision) {
+func (g *PolicyGate) record(ctx context.Context, decision policy.Decision) {
 	g.mu.Lock()
 	g.decisions = append(g.decisions, decision)
 	g.mu.Unlock()
+	audit.RecordPolicyDecision(ctx, g.auditRecorder, audit.PolicyDecisionRecord{
+		Profile:    decision.Profile,
+		Operation:  decision.Operation,
+		Capability: string(decision.Required),
+		Granted:    decision.Granted,
+	})
 	if !decision.Granted && g.recorder != nil {
 		g.recorder.RecordPolicyDenial(decision.Profile)
 	}
