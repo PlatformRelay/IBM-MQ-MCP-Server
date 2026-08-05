@@ -22,8 +22,8 @@ func TestAllPublicToolsHaveOutputSchema(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(res.Tools) != 20 {
-		t.Fatalf("expected 20 tools, got %d", len(res.Tools))
+	if len(res.Tools) != 29 {
+		t.Fatalf("expected 29 tools, got %d", len(res.Tools))
 	}
 	for _, tool := range res.Tools {
 		if tool.OutputSchema == nil {

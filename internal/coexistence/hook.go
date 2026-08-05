@@ -17,7 +17,10 @@ type ObjectKind string
 
 // Supported object kinds for ownership metadata.
 const (
-	ObjectQueue ObjectKind = "queue"
+	ObjectQueue   ObjectKind = "queue"
+	ObjectChannel ObjectKind = "channel"
+	ObjectCHLAUTH ObjectKind = "chlauth"
+	ObjectAuthrec ObjectKind = "authrec"
 )
 
 // MutationPolicy controls behaviour when a managed object is mutated.
@@ -213,7 +216,16 @@ func objectKindResourcePrefix(kind string) string {
 	switch ObjectKind(kind) {
 	case ObjectQueue:
 		return "Queue"
+	case ObjectChannel:
+		return "Channel"
+	case ObjectCHLAUTH:
+		return "CHLAUTH"
+	case ObjectAuthrec:
+		return "Authrec"
 	default:
+		if kind == "" {
+			return "Object"
+		}
 		return strings.ToUpper(kind[:1]) + kind[1:]
 	}
 }

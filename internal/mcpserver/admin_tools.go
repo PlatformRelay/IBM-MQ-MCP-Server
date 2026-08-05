@@ -37,11 +37,16 @@ type deleteQueueInput struct {
 	Queue   string `json:"queue" jsonschema:"required"`
 }
 
-// RegisterAdminTools wires ADM-001 typed queue administration tools.
+// RegisterAdminTools wires ADM-001 queue and ADM-002 security administration tools.
 func RegisterAdminTools(server *mcp.Server, administrator *application.Administrator) {
 	if server == nil || administrator == nil {
 		return
 	}
+	registerQueueAdminTools(server, administrator)
+	registerSecurityAdminTools(server, administrator)
+}
+
+func registerQueueAdminTools(server *mcp.Server, administrator *application.Administrator) {
 	registered := []ToolSpec{
 		{
 			Name:               toolDefineQueue,
@@ -65,7 +70,6 @@ func RegisterAdminTools(server *mcp.Server, administrator *application.Administr
 		Name: toolDefineQueue,
 		Description: destructiveToolDescription(
 			"Create a queue with validated LOCAL/ALIAS/REMOTE/MODEL types.",
-			policy.Administer,
 		),
 		Annotations: &mcp.ToolAnnotations{DestructiveHint: ptrBool(true), IdempotentHint: false},
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in defineQueueInput) (
@@ -86,7 +90,7 @@ func RegisterAdminTools(server *mcp.Server, administrator *application.Administr
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        toolAlterQueue,
-		Description: destructiveToolDescription("Alter maxDepth and/or description on an existing queue.", policy.Administer),
+		Description: destructiveToolDescription("Alter maxDepth and/or description on an existing queue."),
 		Annotations: &mcp.ToolAnnotations{DestructiveHint: ptrBool(true), IdempotentHint: true},
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in alterQueueInput) (
 		*mcp.CallToolResult,
@@ -105,7 +109,7 @@ func RegisterAdminTools(server *mcp.Server, administrator *application.Administr
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        toolDeleteQueue,
-		Description: destructiveToolDescription("Delete a queue definition from the queue manager.", policy.Administer),
+		Description: destructiveToolDescription("Delete a queue definition from the queue manager."),
 		Annotations: &mcp.ToolAnnotations{DestructiveHint: ptrBool(true), IdempotentHint: false},
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in deleteQueueInput) (
 		*mcp.CallToolResult,
@@ -120,8 +124,8 @@ func RegisterAdminTools(server *mcp.Server, administrator *application.Administr
 	})
 }
 
-func destructiveToolDescription(summary string, required policy.Capability) string {
-	return ToolDescription(summary+" Dry-run is not supported for queue mutations.", required)
+func destructiveToolDescription(summary string) string {
+	return ToolDescription(summary+" Dry-run is not supported for queue mutations.", policy.Administer)
 }
 
 func ptrBool(v bool) *bool { return &v }

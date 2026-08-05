@@ -20,12 +20,17 @@ a runtime prerequisite.
 
 ## v0 behaviour
 
-- **Catalog ownership** — `mkurator.managedObjects` on a profile lists queue
-  name patterns (exact or `PREFIX*`) managed declaratively.
-- **Object tags (stub)** — queue descriptions prefixed with
+- **Catalog ownership** — `mkurator.managedObjects` on a profile lists object
+  name patterns (exact or `PREFIX*`) managed declaratively. Supported kinds:
+  `queue`, `channel`, `chlauth`, and `authrec`.
+- **Object tags (stub)** — queue and channel descriptions prefixed with
   `mkurator.platformrelay.io/managed=` supply ownership when present.
 - **Mutation policy** — `mkurator.mutationPolicy` defaults to `warn`; set
   `block` to fail closed before mqweb I/O.
+- **Block + tag-only ownership** — under `mutationPolicy: block`, catalog
+  patterns are evaluated before any mqweb I/O. Tag-only ownership (object
+  description prefix without a matching catalog pattern) is **not** consulted
+  on the block path; declare catalog patterns for objects that must fail closed.
 - **No CR apply** — mutations remain imperative mqweb calls; operators reconcile
   via MKurator/GitOps separately.
 

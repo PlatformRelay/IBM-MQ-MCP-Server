@@ -353,6 +353,7 @@ func parseChannelDetail(body []byte, name string) (mqadmin.ChannelDetail, error)
 		detail.Description = ch.General.Description
 		detail.ConnectionName = ch.General.ConnectionName
 		detail.TransmissionQueue = ch.General.TransmissionQueue
+		detail.MKuratorTag = parseMKuratorTag(ch.General.Description)
 	}
 	return detail, nil
 }

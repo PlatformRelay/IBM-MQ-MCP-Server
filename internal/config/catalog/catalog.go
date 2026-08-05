@@ -187,7 +187,8 @@ func validateMKurator(cfg coexistence.ProfileConfig) error {
 			return fmt.Errorf("mkurator.managedObjects[%d].name is required", i)
 		}
 		switch ref.Kind {
-		case "", coexistence.ObjectQueue:
+		case "", coexistence.ObjectQueue, coexistence.ObjectChannel,
+			coexistence.ObjectCHLAUTH, coexistence.ObjectAuthrec:
 		default:
 			return fmt.Errorf("mkurator.managedObjects[%d].kind %q is not supported", i, ref.Kind)
 		}

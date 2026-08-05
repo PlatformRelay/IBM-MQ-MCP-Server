@@ -30,9 +30,18 @@ gated destructive consume. Results are returned as JSON `structuredContent` ([AD
 | `define_queue` | `administer` | Create a queue with typed LOCAL/ALIAS/REMOTE/MODEL attributes; destructive |
 | `alter_queue` | `administer` | Alter supported queue attributes (`maxDepth`, `description`); destructive |
 | `delete_queue` | `administer` | Delete a queue definition; destructive and irreversible for queued messages |
+| `define_channel` | `administer` | Create a channel with typed SDR/SVR/RCVR/RQSTR/CLNTCONN/SVRCONN/CLUSSDR/CLUSRCVR attributes; destructive |
+| `alter_channel` | `administer` | Alter supported channel attributes (`description`, `connectionName`, `transmissionQueue`); destructive |
+| `delete_channel` | `administer` | Delete a channel definition; destructive |
+| `define_chlauth` | `administer` | Create a channel authentication rule with exact target identity; security-sensitive |
+| `alter_chlauth` | `administer` | Alter USERSRC/MCAUSER on a CHLAUTH rule; security-sensitive |
+| `delete_chlauth` | `administer` | Delete a CHLAUTH rule; security-sensitive, requires exact target identity |
+| `define_authrec` | `administer` | Grant typed authorities on an object profile; security-sensitive |
+| `alter_authrec` | `administer` | Add or remove authority grants on an AUTHREC; security-sensitive |
+| `delete_authrec` | `administer` | Delete an authority record; security-sensitive, requires exact target identity |
 
-ADM-001 queue mutations invoke the INT-001 pre-mutation hook ([ADR-0007](../adr/0007-mkurator-coexistence.md))
-before mqweb I/O. Dry-run is **not** supported for queue mutations.
+ADM-001 queue mutations and ADM-002 channel/CHLAUTH/authrec mutations invoke the INT-001 pre-mutation hook ([ADR-0007](../adr/0007-mkurator-coexistence.md))
+before mqweb I/O. Dry-run is **not** supported for administration mutations.
 
 Policy denies remote tools before credential resolution or mqweb I/O when the
 active profile lacks the required capability (`inspect`, `browse`, `administer`, etc.). The offline reason-code tool never performs MQ

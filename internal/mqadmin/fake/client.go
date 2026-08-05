@@ -35,6 +35,18 @@ type Client struct {
 	AlterQueueCalls  int
 	DeleteQueueCalls int
 
+	DefineChannelCalls int
+	AlterChannelCalls  int
+	DeleteChannelCalls int
+
+	DefineCHLAUTHCalls int
+	AlterCHLAUTHCalls  int
+	DeleteCHLAUTHCalls int
+
+	DefineAuthrecCalls int
+	AlterAuthrecCalls  int
+	DeleteAuthrecCalls int
+
 	QMStatus       mqadmin.QueueManagerStatus
 	ListQueuesPage collection.Page[mqadmin.QueueSummary]
 	Queue          mqadmin.QueueDetail
@@ -68,6 +80,27 @@ type Client struct {
 	DefineQueueErr    error
 	AlterQueueErr     error
 	DeleteQueueErr    error
+
+	DefineChannelResult mqadmin.ChannelMutationResult
+	AlterChannelResult  mqadmin.ChannelMutationResult
+	DeleteChannelResult mqadmin.ChannelMutationResult
+	DefineChannelErr    error
+	AlterChannelErr     error
+	DeleteChannelErr    error
+
+	DefineCHLAUTHResult mqadmin.CHLAUTHMutationResult
+	AlterCHLAUTHResult  mqadmin.CHLAUTHMutationResult
+	DeleteCHLAUTHResult mqadmin.CHLAUTHMutationResult
+	DefineCHLAUTHErr    error
+	AlterCHLAUTHErr     error
+	DeleteCHLAUTHErr    error
+
+	DefineAuthrecResult mqadmin.AuthrecMutationResult
+	AlterAuthrecResult  mqadmin.AuthrecMutationResult
+	DeleteAuthrecResult mqadmin.AuthrecMutationResult
+	DefineAuthrecErr    error
+	AlterAuthrecErr     error
+	DeleteAuthrecErr    error
 }
 
 // New returns a fake admin client for the given profile name.
@@ -339,6 +372,194 @@ func (c *Client) DeleteQueue(_ context.Context, name string) (mqadmin.QueueMutat
 	return result, nil
 }
 
+// DefineChannel records the call and returns configured stub data.
+func (c *Client) DefineChannel(
+	_ context.Context,
+	name string,
+	req mqadmin.DefineChannelRequest,
+) (mqadmin.ChannelMutationResult, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.DefineChannelCalls++
+	if c.DefineChannelErr != nil {
+		return mqadmin.ChannelMutationResult{}, c.DefineChannelErr
+	}
+	result := c.DefineChannelResult
+	if result.ChannelName == "" {
+		result.ChannelName = name
+	}
+	if result.Operation == "" {
+		result.Operation = mqadmin.MutationDefine
+	}
+	if result.After == nil {
+		result.After = &mqadmin.ChannelSnapshot{Name: name, Type: string(req.ChannelType)}
+	}
+	return result, nil
+}
+
+// AlterChannel records the call and returns configured stub data.
+func (c *Client) AlterChannel(
+	_ context.Context,
+	name string,
+	req mqadmin.AlterChannelRequest,
+) (mqadmin.ChannelMutationResult, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.AlterChannelCalls++
+	if c.AlterChannelErr != nil {
+		return mqadmin.ChannelMutationResult{}, c.AlterChannelErr
+	}
+	result := c.AlterChannelResult
+	if result.ChannelName == "" {
+		result.ChannelName = name
+	}
+	if result.Operation == "" {
+		result.Operation = mqadmin.MutationAlter
+	}
+	if result.After == nil {
+		after := mqadmin.ChannelSnapshot{Name: name}
+		if req.Description != nil {
+			after.Description = *req.Description
+		}
+		result.After = &after
+	}
+	return result, nil
+}
+
+// DeleteChannel records the call and returns configured stub data.
+func (c *Client) DeleteChannel(_ context.Context, name string) (mqadmin.ChannelMutationResult, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.DeleteChannelCalls++
+	if c.DeleteChannelErr != nil {
+		return mqadmin.ChannelMutationResult{}, c.DeleteChannelErr
+	}
+	result := c.DeleteChannelResult
+	if result.ChannelName == "" {
+		result.ChannelName = name
+	}
+	if result.Operation == "" {
+		result.Operation = mqadmin.MutationDelete
+	}
+	return result, nil
+}
+
+// DefineCHLAUTH records the call and returns configured stub data.
+func (c *Client) DefineCHLAUTH(
+	_ context.Context, req mqadmin.DefineCHLAUTHRequest,
+) (mqadmin.CHLAUTHMutationResult, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.DefineCHLAUTHCalls++
+	if c.DefineCHLAUTHErr != nil {
+		return mqadmin.CHLAUTHMutationResult{}, c.DefineCHLAUTHErr
+	}
+	result := c.DefineCHLAUTHResult
+	if result.Operation == "" {
+		result.Operation = mqadmin.MutationDefine
+	}
+	if result.Target.ChannelName == "" {
+		result.Target = mqadmin.CHLAUTHSnapshotFromTarget(req.Target)
+	}
+	return result, nil
+}
+
+// AlterCHLAUTH records the call and returns configured stub data.
+func (c *Client) AlterCHLAUTH(
+	_ context.Context, req mqadmin.AlterCHLAUTHRequest,
+) (mqadmin.CHLAUTHMutationResult, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.AlterCHLAUTHCalls++
+	if c.AlterCHLAUTHErr != nil {
+		return mqadmin.CHLAUTHMutationResult{}, c.AlterCHLAUTHErr
+	}
+	result := c.AlterCHLAUTHResult
+	if result.Operation == "" {
+		result.Operation = mqadmin.MutationAlter
+	}
+	if result.Target.ChannelName == "" {
+		result.Target = mqadmin.CHLAUTHSnapshotFromTarget(req.Target)
+	}
+	return result, nil
+}
+
+// DeleteCHLAUTH records the call and returns configured stub data.
+func (c *Client) DeleteCHLAUTH(_ context.Context, target mqadmin.CHLAUTHTarget) (mqadmin.CHLAUTHMutationResult, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.DeleteCHLAUTHCalls++
+	if c.DeleteCHLAUTHErr != nil {
+		return mqadmin.CHLAUTHMutationResult{}, c.DeleteCHLAUTHErr
+	}
+	result := c.DeleteCHLAUTHResult
+	if result.Operation == "" {
+		result.Operation = mqadmin.MutationDelete
+	}
+	if result.Target.ChannelName == "" {
+		result.Target = mqadmin.CHLAUTHSnapshotFromTarget(target)
+	}
+	return result, nil
+}
+
+// DefineAuthrec records the call and returns configured stub data.
+func (c *Client) DefineAuthrec(
+	_ context.Context, req mqadmin.DefineAuthrecRequest,
+) (mqadmin.AuthrecMutationResult, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.DefineAuthrecCalls++
+	if c.DefineAuthrecErr != nil {
+		return mqadmin.AuthrecMutationResult{}, c.DefineAuthrecErr
+	}
+	result := c.DefineAuthrecResult
+	if result.Operation == "" {
+		result.Operation = mqadmin.MutationDefine
+	}
+	if result.Target.Profile == "" {
+		result.Target = mqadmin.AuthrecSnapshotFromTarget(req.Target)
+	}
+	return result, nil
+}
+
+// AlterAuthrec records the call and returns configured stub data.
+func (c *Client) AlterAuthrec(
+	_ context.Context, req mqadmin.AlterAuthrecRequest,
+) (mqadmin.AuthrecMutationResult, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.AlterAuthrecCalls++
+	if c.AlterAuthrecErr != nil {
+		return mqadmin.AuthrecMutationResult{}, c.AlterAuthrecErr
+	}
+	result := c.AlterAuthrecResult
+	if result.Operation == "" {
+		result.Operation = mqadmin.MutationAlter
+	}
+	if result.Target.Profile == "" {
+		result.Target = mqadmin.AuthrecSnapshotFromTarget(req.Target)
+	}
+	return result, nil
+}
+
+// DeleteAuthrec records the call and returns configured stub data.
+func (c *Client) DeleteAuthrec(_ context.Context, target mqadmin.AuthrecTarget) (mqadmin.AuthrecMutationResult, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.DeleteAuthrecCalls++
+	if c.DeleteAuthrecErr != nil {
+		return mqadmin.AuthrecMutationResult{}, c.DeleteAuthrecErr
+	}
+	result := c.DeleteAuthrecResult
+	if result.Operation == "" {
+		result.Operation = mqadmin.MutationDelete
+	}
+	if result.Target.Profile == "" {
+		result.Target = mqadmin.AuthrecSnapshotFromTarget(target)
+	}
+	return result, nil
+}
+
 // Calls returns invocation counts for policy-deny assertions.
 func (c *Client) Calls() (qmStatus, listQueues, getQueue, ping int) {
 	c.mu.Lock()
@@ -354,5 +575,8 @@ func (c *Client) TotalCalls() int {
 		c.ListChannelsCalls + c.GetChannelCalls + c.GetChannelStatusCalls +
 		c.ListListenersCalls + c.GetListenerCalls + c.GetListenerStatusCalls +
 		c.ListSubscriptionsCalls + c.GetSubscriptionCalls +
-		c.DefineQueueCalls + c.AlterQueueCalls + c.DeleteQueueCalls
+		c.DefineQueueCalls + c.AlterQueueCalls + c.DeleteQueueCalls +
+		c.DefineChannelCalls + c.AlterChannelCalls + c.DeleteChannelCalls +
+		c.DefineCHLAUTHCalls + c.AlterCHLAUTHCalls + c.DeleteCHLAUTHCalls +
+		c.DefineAuthrecCalls + c.AlterAuthrecCalls + c.DeleteAuthrecCalls
 }

@@ -213,6 +213,7 @@ func (b *baseClient) requestWithBody(ctx context.Context, method, path string, b
 		return nil, 0, err
 	}
 	req.Header.Set("Accept", "application/json")
+	req.Header.Set("ibm-mq-rest-csrf-token", "ibm-mq-mcp")
 	if len(body) > 0 {
 		req.Header.Set("Content-Type", "application/json")
 	}

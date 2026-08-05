@@ -28,6 +28,25 @@ profiles:
       - browse
 `
 
+var nonInspectToolNames = map[string]bool{
+	"explain_mq_reason_code": true,
+	"browse_queue_messages":  true,
+	"put_queue_message":      true,
+	"consume_queue_messages": true,
+	"define_queue":           true,
+	"alter_queue":            true,
+	"delete_queue":           true,
+	"define_channel":         true,
+	"alter_channel":          true,
+	"delete_channel":         true,
+	"define_chlauth":         true,
+	"alter_chlauth":          true,
+	"delete_chlauth":         true,
+	"define_authrec":         true,
+	"alter_authrec":          true,
+	"delete_authrec":         true,
+}
+
 func TestInspectionToolsRegistered(t *testing.T) {
 	t.Cleanup(mcpserver.ResetRegisteredTools)
 	pool := testInspectPool(t, fake.New("prod"))
@@ -53,8 +72,8 @@ func TestInspectionToolsRegistered(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListTools: %v", err)
 	}
-	if len(res.Tools) != 20 {
-		t.Fatalf("expected 20 tools, got %d", len(res.Tools))
+	if len(res.Tools) != 29 {
+		t.Fatalf("expected 29 tools, got %d", len(res.Tools))
 	}
 }
 
@@ -225,13 +244,7 @@ func TestRegisteredToolSpecsRequireInspect(t *testing.T) {
 	pool := testInspectPool(t, nil)
 	mcpserver.NewWithInspector(application.NewInspector(pool))
 	for _, name := range mcpserver.RegisteredToolNames() {
-		if name == "explain_mq_reason_code" ||
-			name == "browse_queue_messages" ||
-			name == "put_queue_message" ||
-			name == "consume_queue_messages" ||
-			name == "define_queue" ||
-			name == "alter_queue" ||
-			name == "delete_queue" {
+		if nonInspectToolNames[name] {
 			continue
 		}
 		found := false
@@ -255,7 +268,10 @@ func TestRegisteredAdminToolSpecs(t *testing.T) {
 	mcpserver.NewWithInspector(application.NewInspector(pool))
 	for _, spec := range mcpserver.RegisteredTools {
 		switch spec.Name {
-		case "define_queue", "alter_queue", "delete_queue":
+		case "define_queue", "alter_queue", "delete_queue",
+			"define_channel", "alter_channel", "delete_channel",
+			"define_chlauth", "alter_chlauth", "delete_chlauth",
+			"define_authrec", "alter_authrec", "delete_authrec":
 			if spec.RequiredCapability != policy.Administer {
 				t.Fatalf("tool %q capability = %q", spec.Name, spec.RequiredCapability)
 			}

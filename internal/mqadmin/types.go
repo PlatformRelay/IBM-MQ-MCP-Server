@@ -77,6 +77,7 @@ type ChannelDetail struct {
 	Description       string `json:"description,omitempty"`
 	ConnectionName    string `json:"connectionName,omitempty"`
 	TransmissionQueue string `json:"transmissionQueue,omitempty"`
+	MKuratorTag       string `json:"-"`
 }
 
 // ChannelStatus reports runtime channel state separately from definition.

@@ -11,7 +11,7 @@ import (
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/policy"
 )
 
-// Administrator orchestrates ADM-001 typed queue mutations with policy and INT-001 hooks.
+// Administrator orchestrates typed administration mutations with policy and INT-001 hooks.
 type Administrator struct {
 	pool *ProfilePool
 }
@@ -30,11 +30,17 @@ func (a *Administrator) DefineQueue(
 	if err := mqadmin.ValidateDefineQueueRequest(queueName, req); err != nil {
 		return mqadmin.QueueMutationResult{}, err
 	}
-	client, profile, hook, err := a.authorizedMutation(profileName, queueName, "define_queue")
+	client, profile, hook, err := a.authorizedMutation(profileName, "define_queue")
 	if err != nil {
 		return mqadmin.QueueMutationResult{}, err
 	}
-	warning, err := a.runPreMutationHook(ctx, nil, hook, profile, profileName, queueName)
+	target := coexistence.MutationTarget{
+		Profile:      profileName,
+		QueueManager: profile.QueueManager,
+		Kind:         coexistence.ObjectQueue,
+		Name:         queueName,
+	}
+	warning, err := a.runPreMutationHook(ctx, nil, hook, profile, target, nil)
 	if err != nil {
 		return mqadmin.QueueMutationResult{}, err
 	}
@@ -56,11 +62,17 @@ func (a *Administrator) AlterQueue(
 	if err := mqadmin.ValidateAlterQueueRequest(queueName, req); err != nil {
 		return mqadmin.QueueMutationResult{}, err
 	}
-	client, profile, hook, err := a.authorizedMutation(profileName, queueName, "alter_queue")
+	client, profile, hook, err := a.authorizedMutation(profileName, "alter_queue")
 	if err != nil {
 		return mqadmin.QueueMutationResult{}, err
 	}
-	warning, err := a.runPreMutationHook(ctx, client, hook, profile, profileName, queueName)
+	target := coexistence.MutationTarget{
+		Profile:      profileName,
+		QueueManager: profile.QueueManager,
+		Kind:         coexistence.ObjectQueue,
+		Name:         queueName,
+	}
+	warning, err := a.runPreMutationHook(ctx, client, hook, profile, target, queueTagFetcher(queueName))
 	if err != nil {
 		return mqadmin.QueueMutationResult{}, err
 	}
@@ -81,11 +93,17 @@ func (a *Administrator) DeleteQueue(
 	if err := mqadmin.ValidateDeleteQueueRequest(queueName); err != nil {
 		return mqadmin.QueueMutationResult{}, err
 	}
-	client, profile, hook, err := a.authorizedMutation(profileName, queueName, "delete_queue")
+	client, profile, hook, err := a.authorizedMutation(profileName, "delete_queue")
 	if err != nil {
 		return mqadmin.QueueMutationResult{}, err
 	}
-	warning, err := a.runPreMutationHook(ctx, client, hook, profile, profileName, queueName)
+	target := coexistence.MutationTarget{
+		Profile:      profileName,
+		QueueManager: profile.QueueManager,
+		Kind:         coexistence.ObjectQueue,
+		Name:         queueName,
+	}
+	warning, err := a.runPreMutationHook(ctx, client, hook, profile, target, queueTagFetcher(queueName))
 	if err != nil {
 		return mqadmin.QueueMutationResult{}, err
 	}
@@ -99,7 +117,7 @@ func (a *Administrator) DeleteQueue(
 }
 
 func (a *Administrator) authorizedMutation(
-	profileName, _ string, operation string,
+	profileName string, operation string,
 ) (mqadmin.Client, catalog.Profile, *coexistence.PreMutationHook, error) {
 	if a.pool == nil {
 		return nil, catalog.Profile{}, nil, fmt.Errorf("profile pool is not configured")
@@ -119,46 +137,20 @@ func (a *Administrator) authorizedMutation(
 	return client, profile, hook, nil
 }
 
-func (a *Administrator) runPreMutationHook(
-	ctx context.Context,
-	client mqadmin.Client,
-	hook *coexistence.PreMutationHook,
-	profile catalog.Profile,
-	profileName, queueName string,
-) (string, error) {
-	target := coexistence.MutationTarget{
-		Profile:      profileName,
-		QueueManager: profile.QueueManager,
-		Kind:         coexistence.ObjectQueue,
-		Name:         queueName,
+func queueTagFetcher(queueName string) tagFetcher {
+	return func(ctx context.Context, client mqadmin.Client) (map[string]string, error) {
+		detail, err := client.GetQueue(ctx, queueName)
+		if err != nil {
+			if reason, ok := mqadmin.AsReasonError(err); ok && reason.Code == 2085 {
+				return nil, nil
+			}
+			return nil, err
+		}
+		if detail.MKuratorTag == "" {
+			return nil, nil
+		}
+		return map[string]string{coexistence.TagManagedByMKurator: detail.MKuratorTag}, nil
 	}
-
-	catalogResult := hook.Evaluate(target, nil)
-	if err := hook.Enforce(catalogResult); err != nil {
-		return "", err
-	}
-	warning := hookWarning(catalogResult)
-
-	if client == nil || profile.MKurator.MutationPolicy == coexistence.PolicyBlock {
-		return warning, nil
-	}
-
-	tags, err := a.objectTags(ctx, client, queueName)
-	if err != nil {
-		return "", err
-	}
-	if len(tags) == 0 {
-		return warning, nil
-	}
-
-	tagResult := hook.Evaluate(target, tags)
-	if err := hook.Enforce(tagResult); err != nil {
-		return "", err
-	}
-	if tagResult.Outcome == coexistence.OutcomeWarn {
-		return tagResult.Message, nil
-	}
-	return warning, nil
 }
 
 func hookWarning(result coexistence.PreMutationResult) string {
@@ -166,22 +158,4 @@ func hookWarning(result coexistence.PreMutationResult) string {
 		return result.Message
 	}
 	return ""
-}
-
-func (a *Administrator) objectTags(
-	ctx context.Context,
-	client mqadmin.Client,
-	queueName string,
-) (map[string]string, error) {
-	detail, err := client.GetQueue(ctx, queueName)
-	if err != nil {
-		if reason, ok := mqadmin.AsReasonError(err); ok && reason.Code == 2085 {
-			return nil, nil
-		}
-		return nil, err
-	}
-	if detail.MKuratorTag == "" {
-		return nil, nil
-	}
-	return map[string]string{coexistence.TagManagedByMKurator: detail.MKuratorTag}, nil
 }

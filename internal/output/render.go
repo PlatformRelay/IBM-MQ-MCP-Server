@@ -295,6 +295,60 @@ func RenderQueueMutationResult(result mqadmin.QueueMutationResult) string {
 	return joinPairs(pairs...)
 }
 
+// RenderChannelMutationResult renders channel mutation before/after identifiers.
+func RenderChannelMutationResult(result mqadmin.ChannelMutationResult) string {
+	pairs := []string{
+		kv("operation", string(result.Operation)),
+		kv("profile", result.Profile),
+		kv("queueManager", result.QueueManager),
+		kv("channel", result.ChannelName),
+		kvTime("completedAt", result.CompletedAt),
+	}
+	if result.Before != nil {
+		pairs = append(pairs, kv("before", result.Before.Name))
+	}
+	if result.After != nil {
+		pairs = append(pairs, kv("after", result.After.Name))
+	}
+	if result.Warning != "" {
+		pairs = append(pairs, kv("warning", result.Warning))
+	}
+	return joinPairs(pairs...)
+}
+
+// RenderCHLAUTHMutationResult renders CHLAUTH mutation identifiers.
+func RenderCHLAUTHMutationResult(result mqadmin.CHLAUTHMutationResult) string {
+	pairs := []string{
+		kv("operation", string(result.Operation)),
+		kv("profile", result.Profile),
+		kv("queueManager", result.QueueManager),
+		kv("channel", result.Target.ChannelName),
+		kv("ruleType", result.Target.RuleType),
+		kvTime("completedAt", result.CompletedAt),
+	}
+	if result.Warning != "" {
+		pairs = append(pairs, kv("warning", result.Warning))
+	}
+	return joinPairs(pairs...)
+}
+
+// RenderAuthrecMutationResult renders authority-record mutation identifiers.
+func RenderAuthrecMutationResult(result mqadmin.AuthrecMutationResult) string {
+	pairs := []string{
+		kv("operation", string(result.Operation)),
+		kv("profile", result.Profile),
+		kv("queueManager", result.QueueManager),
+		kv("authrecProfile", result.Target.Profile),
+		kv("objectType", result.Target.ObjectType),
+		kv("entity", result.Target.Entity),
+		kvTime("completedAt", result.CompletedAt),
+	}
+	if result.Warning != "" {
+		pairs = append(pairs, kv("warning", result.Warning))
+	}
+	return joinPairs(pairs...)
+}
+
 // RenderMarkdownQueueTable renders a Markdown table for benchmark comparison.
 func RenderMarkdownQueueTable(page collection.Page[mqadmin.QueueSummary]) string {
 	var b strings.Builder
