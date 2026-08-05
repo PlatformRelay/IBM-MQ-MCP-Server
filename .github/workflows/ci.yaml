@@ -66,8 +66,88 @@ jobs:
             AGENTS.md \
             .editorconfig \
             .github/dependabot.yml \
-            renovate.json
+            renovate.json \
+            .golangci.yaml \
+            Taskfile.yml
           do
             test -f "$f" || { echo "missing required file: $f" >&2; exit 1; }
           done
           echo "OSS hygiene files present."
+
+  format:
+    name: format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/go-cache
+        with:
+          cache-suffix: format
+      - uses: arduino/setup-task@c0bc642852239c2689f73f4ea6459c29405f3c52 # v3.0.0
+        with:
+          version: 3.51.1
+      - name: Format check
+        run: task format:check
+        env:
+          CI: "true"
+
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/go-cache
+        with:
+          cache-suffix: lint
+      - uses: arduino/setup-task@c0bc642852239c2689f73f4ea6459c29405f3c52 # v3.0.0
+        with:
+          version: 3.51.1
+      - name: golangci-lint
+        run: task lint
+        env:
+          CI: "true"
+
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/go-cache
+        with:
+          cache-suffix: test
+      - uses: arduino/setup-task@c0bc642852239c2689f73f4ea6459c29405f3c52 # v3.0.0
+        with:
+          version: 3.51.1
+      - name: Unit tests with race + coverage floor
+        run: |
+          task test:race
+          task coverage
+        env:
+          CI: "true"
+      - name: Build
+        run: task build
+        env:
+          CI: "true"
+
+  vulncheck:
+    name: vulncheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/go-cache
+        with:
+          cache-suffix: vuln
+      - uses: arduino/setup-task@c0bc642852239c2689f73f4ea6459c29405f3c52 # v3.0.0
+        with:
+          version: 3.51.1
+      - name: govulncheck
+        run: task vulncheck
+        env:
+          CI: "true"

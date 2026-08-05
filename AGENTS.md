@@ -44,19 +44,27 @@ Do not duplicate requirements across these layers. Link to the authority instead
 
 ## Validation
 
+Documented once here; CI mirrors these via `.github/workflows/ci.yaml`.
+Details: [docs/development/ci-gates.md](docs/development/ci-gates.md).
+
 ```bash
 # Docs
 pip install -r docs/requirements-docs.txt
 mkdocs build --strict
 
-# Go (FND-001) — CGO-free
-task test          # or: CGO_ENABLED=0 go test ./...
-task build         # or: CGO_ENABLED=0 go build -o bin/ibm-mq-mcp ./cmd/ibm-mq-mcp
+# One-command local CI equivalent (FND-002)
+task check
+
+# Individual gates
+task verify        # go mod tidy + gofmt
+task lint          # golangci-lint
+task test:race     # go test -race
+task coverage      # coverage floor (mcpserver)
+task vulncheck     # govulncheck
+task scrub:tree    # forbidden-pattern scrub
+task build         # CGO-free binary
 task run           # MCP server over stdio
 ```
-
-FND-002 will add `task verify` / `lint` / `coverage` / `scrub` and CI gates
-matching Kollect/MKurator.
 
 ## Repository hygiene
 

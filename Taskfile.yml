@@ -1,5 +1,11 @@
 version: "3"
 
+vars:
+  # renovate: datasource=go depName=golang.org/x/vuln/cmd/govulncheck
+  GOVULNCHECK_VERSION: v1.1.4
+  # renovate: datasource=github-releases depName=golangci/golangci-lint
+  GOLANGCI_LINT_VERSION: v2.2.2
+
 tasks:
   default:
     desc: Show available tasks
@@ -14,12 +20,80 @@ tasks:
       - mkdir -p bin
       - go build -trimpath -o bin/ibm-mq-mcp ./cmd/ibm-mq-mcp
 
+  format:
+    desc: Format Go sources with gofmt
+    cmds:
+      - gofmt -w $(git ls-files '*.go')
+
+  format:check:
+    desc: Fail if gofmt would change files
+    cmds:
+      - bash hack/format-check.sh
+
+  verify:
+    desc: go mod tidy drift check + gofmt
+    cmds:
+      - bash hack/verify.sh
+
+  lint:
+    desc: golangci-lint (includes govet-class checks)
+    cmds:
+      - go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@{{.GOLANGCI_LINT_VERSION}} run ./...
+
   test:
     desc: Run unit tests (CGO-free)
     env:
       CGO_ENABLED: "0"
     cmds:
       - go test ./...
+
+  test:race:
+    desc: Run unit tests with the race detector
+    env:
+      CGO_ENABLED: "1"
+    cmds:
+      - go test -race -count=1 ./...
+
+  coverage:
+    desc: Coverage profile with floor (default 50% on mcpserver)
+    env:
+      CGO_ENABLED: "0"
+    cmds:
+      - bash hack/coverage.sh
+
+  coverage:race:
+    desc: Coverage with race detector
+    env:
+      CGO_ENABLED: "1"
+      RACE_FLAGS: "-race"
+    cmds:
+      - bash hack/coverage.sh
+
+  vulncheck:
+    desc: govulncheck
+    cmds:
+      - go run golang.org/x/vuln/cmd/govulncheck@{{.GOVULNCHECK_VERSION}} ./...
+
+  scrub:
+    desc: Scan staged files for forbidden secret-like patterns
+    cmds:
+      - bash hack/scrub.sh staged
+
+  scrub:tree:
+    desc: Scan the whole tree for forbidden secret-like patterns
+    cmds:
+      - bash hack/scrub.sh tree
+
+  check:
+    desc: One-command local equivalent of the CI gate matrix
+    cmds:
+      - task verify
+      - task lint
+      - task test:race
+      - task coverage
+      - task vulncheck
+      - task scrub:tree
+      - task build
 
   run:
     desc: Run the MCP server over stdio

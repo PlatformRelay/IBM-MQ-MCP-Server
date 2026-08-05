@@ -58,20 +58,17 @@ Signed-off-by: Your Name <your.email@example.com>
 Use `git commit -s` to add the trailer. Full DCO text:
 https://developercertificate.org/
 
-## Local checks (current)
+## Local checks
 
 ```bash
+task check
 # Docs (requires Python deps from docs/requirements-docs.txt)
 pip install -r docs/requirements-docs.txt
 mkdocs build --strict
-```
-
-After FND-001/FND-002, prefer:
-
-```bash
-task verify && task lint && task test && task scrub
 gitleaks protect --staged --no-banner
 ```
+
+Gate details: [docs/development/ci-gates.md](docs/development/ci-gates.md).
 
 ## Pull requests
 

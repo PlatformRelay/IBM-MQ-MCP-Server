@@ -30,6 +30,7 @@ nav:
       - ADR-0009 License + OSS: adr/0009-license-and-oss-maturity.md
   - Operations:
       - Release: RELEASE.md
+      - CI gates: development/ci-gates.md
       - Security policy: https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/SECURITY.md
   - Planning:
       - Bootstrap proposal: https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/openspec/changes/bootstrap-mq-mcp/proposal.md

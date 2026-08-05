@@ -1,0 +1,6 @@
+# Forbidden patterns for hack/scrub.sh (extended regex).
+# Keep this list short and high-signal; expand as the threat model grows.
+password\s*=\s*['\"][^'\"]+['\"]
+BEGIN RSA PRIVATE KEY
+BEGIN OPENSSH PRIVATE KEY
+AKIA[0-9A-Z]{16}
