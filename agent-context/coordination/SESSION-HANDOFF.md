@@ -5,7 +5,7 @@
 
 ## State
 
-- **main tip:** `7f1c256` (`:sparkles: feat(obs-001): health, metrics, and structured logs`)
+- **main tip:** `7f1c256` (`:bug: fix(obs): set HTTP timeouts on ops listener`)
 - OBS-001 integrated — ops HTTP (`/healthz`, `/readyz`, `/metrics`), Prometheus metrics, redacted structured logs, `--ops-addr` opt-in.
 - FND-003 @ 1fe36f8; FND-002 @ 99eaa5d; FND-001 @ 5edb34c.
 - Remote `lane/obs-001` deleted after ff-merge.
