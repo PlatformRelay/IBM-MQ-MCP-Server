@@ -121,7 +121,7 @@ through EPIC-002..008.
 [Story](stories/SEC-002.md)
 
 ### OBS-001 — Health, readiness, metrics, and structured logs
-⬜ Open · Starts after FND-001.
+✅ Done · Integrated to `main` @ 7f1c256.
 [Story](stories/OBS-001.md)
 
 ## EPIC-008 — Coexistence and adoption
@@ -134,5 +134,5 @@ through EPIC-002..008.
 [Story](stories/INT-001.md)
 
 ### DOC-001 — Deliver documentation and operator experience
-⬜ Open · MkDocs, examples, runbooks, threat model, version matrix.
+⬜ Next · MkDocs, examples, runbooks, threat model, version matrix.
 [Story](stories/DOC-001.md)
