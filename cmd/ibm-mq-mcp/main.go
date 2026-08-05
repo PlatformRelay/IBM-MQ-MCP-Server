@@ -11,6 +11,9 @@ import (
 	"os/signal"
 	"strings"
 
+	"github.com/modelcontextprotocol/go-sdk/mcp"
+
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/adapter/mqweb"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/adapter/opshttp"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/application"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/config/catalog"
@@ -66,7 +69,12 @@ func main() {
 		}()
 	}
 
-	server := mcpserver.New()
+	var server *mcp.Server
+	if pool != nil {
+		server = mcpserver.NewWithInspector(application.NewInspector(pool))
+	} else {
+		server = mcpserver.New()
+	}
 	if err := mcpserver.RunStdio(ctx, server, rt); err != nil {
 		slog.Error("mcp server stopped", slog.String("error", err.Error()))
 		os.Exit(1)
@@ -99,7 +107,7 @@ func loadProfiles(path string, strictStartup bool) (*application.ProfilePool, bo
 	if strictStartup && !validation.AllValid() {
 		return nil, false, firstValidationError(validation)
 	}
-	pool := application.NewProfilePool(cat, validation, nil, nil)
+	pool := application.NewProfilePool(cat, validation, nil, nil, application.WithAdminFactory(mqweb.NewAdminClient))
 	return pool, application.ConfigReady(cat, validation), nil
 }
 
