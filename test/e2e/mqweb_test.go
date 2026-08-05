@@ -25,11 +25,8 @@ func TestMQWeb_AdminREST_QueueManagerReachable(t *testing.T) {
 	defer func() { _ = resp.Body.Close() }()
 	_, _ = io.Copy(io.Discard, resp.Body)
 
-	switch resp.StatusCode {
-	case http.StatusOK, http.StatusUnauthorized, http.StatusForbidden:
-		// mqweb responded — reachability proven.
-	default:
-		t.Fatalf("admin REST unexpected status %d for %s", resp.StatusCode, path)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("admin REST expected 200 with valid credentials, got %d for %s", resp.StatusCode, path)
 	}
 }
 
@@ -51,10 +48,12 @@ func TestMQWeb_MessagingREST_Reachable(t *testing.T) {
 	defer func() { _ = resp.Body.Close() }()
 
 	switch resp.StatusCode {
-	case http.StatusOK, http.StatusNoContent, http.StatusMethodNotAllowed,
-		http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound:
-		// Any HTTP response from mqweb messaging REST counts as reachability.
+	case http.StatusOK, http.StatusNoContent, http.StatusMethodNotAllowed, http.StatusNotFound:
+		// HEAD on queue message path: 200/204 when reachable; 404 if queue missing; 405 if method unsupported.
 	default:
+		if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+			t.Fatalf("messaging REST auth failed (%d) — check MQ_ADMIN_PASSWORD / IBM_MQ_MCP_E2E_PASSWORD", resp.StatusCode)
+		}
 		t.Fatalf("messaging REST unexpected status %d for %s", resp.StatusCode, path)
 	}
 }

@@ -22,12 +22,12 @@ const (
 )
 
 type mqEnv struct {
-	endpoint    *url.URL
-	host        string
-	queueMgr    string
-	user        string
-	password    string
-	httpClient  *http.Client
+	endpoint   *url.URL
+	host       string
+	queueMgr   string
+	user       string
+	password   string
+	httpClient *http.Client
 }
 
 func e2eEnabled() bool {
@@ -74,11 +74,12 @@ func loadMQEnv() (mqEnv, error) {
 		},
 	}
 
-	password := os.Getenv("IBM_MQ_MCP_MQ_PASSWORD")
+	password := os.Getenv("MQ_ADMIN_PASSWORD")
 	if password == "" {
-		password = os.Getenv("MQ_ADMIN_PASSWORD")
+		password = os.Getenv("IBM_MQ_MCP_E2E_PASSWORD")
 	}
 	if password == "" {
+		// MKurator Kind local-dev default only; override via env in CI or shared clusters.
 		password = defaultPassword
 	}
 
