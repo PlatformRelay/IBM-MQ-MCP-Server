@@ -15,6 +15,7 @@ All examples are **secret-free**: credentials are referenced by name only.
 | --- | --- |
 | [profile-read-only.yaml](profile-read-only.yaml) | Production-style inspect + browse only |
 | [profile-mixed-grants.yaml](profile-mixed-grants.yaml) | Read-only production + write-capable development profile |
+| [profile-kind-local.yaml](profile-kind-local.yaml) | Local Kind IBM MQ via MKurator (`QM1`, `https://mq.localhost:30443`) |
 
 ## Usage (future)
 

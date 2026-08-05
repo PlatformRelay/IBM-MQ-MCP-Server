@@ -33,7 +33,8 @@ Status legend:
 
 | IBM MQ major | Platform | mqweb deployment mode | Admin REST | Messaging REST | Status | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| *TBD* | Linux x86_64 | Full install | Unknown | Unknown | Unknown | Primary target for FND-004 |
+| IBM MQ 9.4.x | Linux x86_64 (Kind) | Full install (Helm) | Planned | Planned | Planned | MKurator Kind stack `9.4.5.1-r1`; FND-004 e2e reachability |
+| IBM MQ 9.4.x | Linux x86_64 (Docker) | Full install | Planned | Planned | Planned | MKurator `hack/mq-docker`; lighter local path |
 | *TBD* | Linux x86_64 | Standalone mqweb | Unknown | Unknown | Unknown | Capability gaps vs full install |
 | *TBD* | Linux arm64 | Full install | Unknown | Unknown | Unknown | Container multi-arch build exists; MQ validation TBD |
 | *TBD* | Windows | Full install | Unknown | Unknown | Unknown | Not prioritized until evidence |

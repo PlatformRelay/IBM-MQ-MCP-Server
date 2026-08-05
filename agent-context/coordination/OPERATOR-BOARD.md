@@ -4,13 +4,13 @@
 
 | Lane | Branch | Worktree | Notes |
 | --- | --- | --- | --- |
-| — | — | — | — |
+| FND-004 | lane/fnd-004 | ibm-mq-mcp-fnd-004 | Local MQ docs + opt-in e2e |
 
 ## Ready / next
 
 | Lane | Status | Notes |
 | --- | --- | --- |
-| — | — | Remaining delivery slices need ADR-0003 (capabilities), ADR-0004 (secrets), ADR-0006 (remote MCP), ADR-0007/0008 as listed on roadmap; **FND-004** optional / still parked (licensing + live MQ) |
+| MSG-001 | Ready | FND-004 harness landed; design questions 14–16 still open |
 
 ## Integrated / Done
 
@@ -22,10 +22,10 @@
 | FND-001 — Go skeleton + minimal MCP server | Integrated to `main` @ 5edb34c |
 | FND-002 — CI quality gates | Integrated to `main` @ 99eaa5d |
 | FND-003 — Release cosign/SBOM | Integrated to `main` @ 1fe36f8 |
+| FND-004 — Local MQ + e2e harness | lane/fnd-004 (pending integrate) |
 
 ## Parked
 
 | Item | Why |
 | --- | --- |
 | CON-*/POL-*/MSG-*/ADM-*/SEC-*/INT-001 | Waiting on ADR-0003+ (CON/POL still ADR-blocked) |
-| FND-004 | Licensing / live MQ approach |

@@ -28,6 +28,7 @@ nav:
       - Overview: examples/README.md
       - Read-only profile: examples/profile-read-only.yaml
       - Mixed grants: examples/profile-mixed-grants.yaml
+      - Kind local profile: examples/profile-kind-local.yaml
   - Operations:
       - Deployment: deployment.md
       - Observability: observability.md
@@ -54,6 +55,7 @@ nav:
       - ADR-0009 License + OSS: adr/0009-license-and-oss-maturity.md
   - Development:
       - CI gates: development/ci-gates.md
+      - Local IBM MQ: development/local-mq.md
   - Planning:
       - Roadmap: https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/agent-context/roadmap.md
       - Bootstrap proposal: https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/openspec/changes/bootstrap-mq-mcp/proposal.md

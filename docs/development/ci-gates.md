@@ -11,6 +11,9 @@ task check
 This runs `verify` → `lint` → `test:race` → `coverage` → `vulncheck` →
 `scrub:tree` → `build`.
 
+E2e tests against live IBM MQ are **opt-in** and excluded from `task check`.
+See [local IBM MQ](local-mq.md) and `task test:e2e` (`IBM_MQ_MCP_E2E=1`).
+
 ## CI jobs (must stay present)
 
 The workflow `.github/workflows/ci.yaml` defines:

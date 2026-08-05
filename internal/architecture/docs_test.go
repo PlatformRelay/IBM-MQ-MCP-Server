@@ -29,6 +29,8 @@ func TestRequiredDocumentationPathsExist(t *testing.T) {
 		"docs/security/threat-model.md",
 		"docs/support/version-matrix.md",
 		"docs/support/mkurator-coexistence.md",
+		"docs/development/local-mq.md",
+		"docs/examples/profile-kind-local.yaml",
 		"docs/RELEASE.md",
 		"docs/adr/README.md",
 		"mkdocs.yml",
@@ -63,6 +65,7 @@ func TestMkdocsNavReferencesRequiredPages(t *testing.T) {
 		"deployment.md",
 		"troubleshooting.md",
 		"upgrade.md",
+		"development/local-mq.md",
 	}
 	for _, fragment := range fragments {
 		if !strings.Contains(body, fragment) {

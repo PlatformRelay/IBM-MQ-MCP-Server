@@ -66,6 +66,17 @@ task build         # CGO-free binary
 task docker:build  # local container smoke (ibm-mq-mcp:dev, distroless nonroot)
 task run           # MCP server over stdio (default; no ops HTTP)
 
+# Local IBM MQ + e2e (FND-004 — opt-in; not part of task check)
+export MKURATOR_ROOT=../mkurator   # sibling checkout required
+task mq:kind:up                    # Kind + IBM MQ via mkurator cluster:up
+task mq:kind:info                  # URLs: https://mq.localhost:30443, QM1
+task mq:kind:down                  # full teardown (cluster:down)
+task mq:docker:up                  # optional lighter Docker path
+task mq:docker:down
+export IBM_MQ_MCP_E2E=1            # unset → e2e skips; set + unreachable → fail
+task test:e2e                      # go test -tags=e2e ./test/e2e/...
+# Details: docs/development/local-mq.md
+
 # Optional ops HTTP (health, readiness, metrics) — separate from MCP transport
 IBM_MQ_MCP_OPS_ADDR=:9090 task run
 # or: go run ./cmd/ibm-mq-mcp --ops-addr :9090

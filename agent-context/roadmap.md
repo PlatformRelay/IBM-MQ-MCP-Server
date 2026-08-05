@@ -28,7 +28,7 @@ through EPIC-002..008.
 [Story](stories/FND-003.md)
 
 ### FND-004 — Live IBM MQ development and e2e environment
-⬜ Open · Licensing approach undecided; gates the MSG-001 spike.
+✅ Done · lane/fnd-004 — MKurator Kind reuse, opt-in e2e, Developers license documented.
 [Story](stories/FND-004.md)
 
 ## EPIC-003 — Connection profiles and capability policy
@@ -81,7 +81,7 @@ after POL-001.
 [Change](../openspec/changes/safe-messaging/proposal.md)
 
 ### MSG-001 — Prove mqweb message semantics and ship bounded browse
-🛑 Blocked · Requires design questions 14–16 and the FND-004 spike.
+⬜ Open · FND-004 harness ready; still requires design questions 14–16.
 [Story](stories/MSG-001.md)
 
 ### MSG-002 — Validated message production

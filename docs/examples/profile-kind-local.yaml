@@ -1,0 +1,19 @@
+# Illustrative profile for local Kind IBM MQ (FND-004).
+# NOT a supported config schema until CON-001 / ADR-0004 land.
+# Secret-free: credentials referenced by env name only — never commit values.
+
+profiles:
+  kind-local:
+    queueManager: QM1
+    endpoint: https://mq.localhost:30443
+    authentication:
+      type: basic
+      # Prefer IBM_MQ_MCP_MQ_PASSWORD or MQ_ADMIN_PASSWORD from the environment.
+      secretRef: env:IBM_MQ_MCP_MQ_PASSWORD
+    tls:
+      # mkcert wildcard for *.localhost in the MKurator Kind stack; production
+      # profiles should use caRef with a trusted CA instead.
+      insecureSkipVerify: true
+    capabilities:
+      - inspect
+      - browse

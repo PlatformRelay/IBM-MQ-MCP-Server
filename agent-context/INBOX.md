@@ -49,6 +49,18 @@ tools with CI generation noted as future work; skip markdownlint in docs CI
 (mkdocs `--strict` is the gate).
 **Revert:** Replace provisional pages when ADRs land; fill matrix from FND-004.
 
+### ✅ DECIDED — FND-004 local MQ licensing + MKurator reuse
+
+**Context:** FND-004 needs a disposable local/CI IBM MQ with mqweb; licensing and
+provisioning approach were open.
+**Chose:** Reuse sibling MKurator Kind stack (`task cluster:up` via
+`MKURATOR_ROOT`, default `../mkurator`) — Helm `ibm-messaging/mq-helm`, not
+MKurator CRs for the QM. IBM MQ **Advanced for Developers** via
+`LICENSE=accept` / Helm `license: accept`; image `icr.io/ibm-messaging/mq` not
+redistributed; local/CI non-production only. Optional Docker path via MKurator
+`hack/mq-docker`.
+**Recorded:** `decisions.md`, `docs/development/local-mq.md`, FND-004 story Done.
+
 ### 🟡 DECIDED (awaiting approval) — FND-003 artifacts (DQ 22)
 
 **Context:** FND-003 needs mandatory artifact set before cosign/SBOM release

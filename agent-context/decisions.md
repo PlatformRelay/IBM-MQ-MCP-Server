@@ -79,3 +79,25 @@ a single mode; acceptable because ambiguity in B/C is worse for audit and
 
 **Revert:** Supersede ADR-0003; reopen POL-001 until a replacement ADR is
 Accepted.
+
+## 2026-08-05 — FND-004 local MQ licensing and MKurator Kind reuse
+
+**Context:** FND-004 requires a disposable local IBM MQ with mqweb, TLS, and test
+users for tagged e2e tests. Licensing and whether to vendor a cluster stack were
+open.
+
+**Options considered:**
+- A: Reuse sibling MKurator Kind stack (`task cluster:up` / Helm `ibm-mq-helm`);
+  IBM MQ Advanced for Developers license (`LICENSE=accept`); optional Docker
+  path via MKurator `hack/mq-docker`; do not vendor `hack/kind-cluster`.
+- B: Vendor a copy of MKurator's kind-cluster tree into ibm-mq-mcp.
+- C: Shared long-lived queue manager for e2e (rejected by story).
+
+**Chose:** A. Document `MKURATOR_ROOT` (default `../mkurator`); e2e opt-in via
+`IBM_MQ_MCP_E2E=1`; fail loud when enabled and unreachable; skip when unset.
+Image `icr.io/ibm-messaging/mq` not redistributed; non-production dev/CI only.
+
+**Dissent noted:** External dependency on MKurator checkout is acceptable — same
+portfolio, avoids duplicating Terraform/Helm maintenance.
+
+**Revert:** Vendor local stack or change license approach via INBOX + ADR update.

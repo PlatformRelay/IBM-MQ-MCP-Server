@@ -6,6 +6,8 @@ vars:
   # renovate: datasource=github-releases depName=golangci/golangci-lint
   GOLANGCI_LINT_VERSION: v2.2.2
   DOCKER_IMAGE: ibm-mq-mcp:dev
+  MKURATOR_ROOT:
+    sh: echo "${MKURATOR_ROOT:-../mkurator}"
 
 tasks:
   default:
@@ -107,3 +109,58 @@ tasks:
       CGO_ENABLED: "0"
     cmds:
       - go run ./cmd/ibm-mq-mcp
+
+  mq:kind:up:
+    desc: Provision Kind + IBM MQ via sibling mkurator checkout (cluster:up)
+    preconditions:
+      - sh: test -d "{{.MKURATOR_ROOT}}"
+        msg: "MKURATOR_ROOT must point at a mkurator checkout (default ../mkurator)"
+    cmds:
+      - task -d "{{.MKURATOR_ROOT}}" cluster:up
+
+  mq:kind:down:
+    desc: Tear down Kind cluster and IBM MQ (cluster:down — no persistent state)
+    preconditions:
+      - sh: test -d "{{.MKURATOR_ROOT}}"
+        msg: "MKURATOR_ROOT must point at a mkurator checkout (default ../mkurator)"
+    cmds:
+      - task -d "{{.MKURATOR_ROOT}}" cluster:down
+
+  mq:kind:info:
+    desc: Print MQ URLs and credentials from the mkurator Kind stack
+    preconditions:
+      - sh: test -d "{{.MKURATOR_ROOT}}"
+        msg: "MKURATOR_ROOT must point at a mkurator checkout (default ../mkurator)"
+    cmds:
+      - task -d "{{.MKURATOR_ROOT}}" cluster:info
+
+  mq:docker:up:
+    desc: Start standalone IBM MQ in Docker (lighter path; requires mkurator checkout)
+    preconditions:
+      - sh: test -d "{{.MKURATOR_ROOT}}"
+        msg: "MKURATOR_ROOT must point at a mkurator checkout (default ../mkurator)"
+    cmds:
+      - task -d "{{.MKURATOR_ROOT}}" mq:integration:up
+
+  mq:docker:wait:
+    desc: Wait until Docker mqweb is ready on localhost:9443
+    preconditions:
+      - sh: test -d "{{.MKURATOR_ROOT}}"
+        msg: "MKURATOR_ROOT must point at a mkurator checkout (default ../mkurator)"
+    cmds:
+      - task -d "{{.MKURATOR_ROOT}}" mq:integration:wait
+
+  mq:docker:down:
+    desc: Stop standalone Docker IBM MQ
+    preconditions:
+      - sh: test -d "{{.MKURATOR_ROOT}}"
+        msg: "MKURATOR_ROOT must point at a mkurator checkout (default ../mkurator)"
+    cmds:
+      - task -d "{{.MKURATOR_ROOT}}" mq:integration:down
+
+  test:e2e:
+    desc: Run tagged e2e tests against live MQ (opt-in via IBM_MQ_MCP_E2E=1)
+    env:
+      CGO_ENABLED: "0"
+    cmds:
+      - go test -tags=e2e -count=1 ./test/e2e/...
