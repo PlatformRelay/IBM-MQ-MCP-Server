@@ -402,6 +402,7 @@ func NewWithInspector(inspector *application.Inspector) *mcp.Server {
 	if inspector != nil {
 		RegisterInspectionTools(server, inspector)
 	}
+	RegisterDiagnosticsTools(server, inspector)
 	return server
 }
 

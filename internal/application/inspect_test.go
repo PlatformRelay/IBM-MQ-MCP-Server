@@ -3,8 +3,11 @@ package application_test
 import (
 	"context"
 	"errors"
+	"net"
 	"testing"
+	"time"
 
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/adapter/mqweb"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/application"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/config/catalog"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/config/secrets"
@@ -27,6 +30,18 @@ profiles:
       - inspect
   readonly:
     queueManager: QM2
+    endpoint: https://mq.example.test:9443
+    authentication:
+      type: basic
+      secretRef: env:IBM_MQ_MCP_INSPECT_SECRET
+    capabilities:
+      - browse
+`
+
+const browseOnlyInspectDoc = `
+profiles:
+  prod:
+    queueManager: QM1
     endpoint: https://mq.example.test:9443
     authentication:
       type: basic
@@ -70,19 +85,8 @@ func TestInspectorListProfilesNoSecrets(t *testing.T) {
 
 func TestInspectorDeniesQueueManagerBeforeAdapter(t *testing.T) {
 	fakeClient := fake.New("prod")
-	poolDoc := `
-profiles:
-  prod:
-    queueManager: QM1
-    endpoint: https://mq.example.test:9443
-    authentication:
-      type: basic
-      secretRef: env:IBM_MQ_MCP_INSPECT_SECRET
-    capabilities:
-      - browse
-`
 	t.Setenv("IBM_MQ_MCP_INSPECT_SECRET", "user:pass")
-	cat, err := catalog.LoadYAML([]byte(poolDoc))
+	cat, err := catalog.LoadYAML([]byte(browseOnlyInspectDoc))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -135,19 +139,8 @@ func TestInspectorRequiresInspectCapability(t *testing.T) {
 
 func TestInspectorDeniesListChannelsBeforeAdapter(t *testing.T) {
 	fakeClient := fake.New("prod")
-	poolDoc := `
-profiles:
-  prod:
-    queueManager: QM1
-    endpoint: https://mq.example.test:9443
-    authentication:
-      type: basic
-      secretRef: env:IBM_MQ_MCP_INSPECT_SECRET
-    capabilities:
-      - browse
-`
 	t.Setenv("IBM_MQ_MCP_INSPECT_SECRET", "user:pass")
-	cat, err := catalog.LoadYAML([]byte(poolDoc))
+	cat, err := catalog.LoadYAML([]byte(browseOnlyInspectDoc))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -212,5 +205,143 @@ func TestInspectorListListenersUnsupported(t *testing.T) {
 	}
 	if _, ok := mqadmin.AsUnsupportedError(err); !ok {
 		t.Fatalf("expected UnsupportedError, got %v", err)
+	}
+}
+
+func TestInspectorCheckProfileConnectivityHappyPath(t *testing.T) {
+	fakeClient := fake.New("prod")
+	fakeClient.QMStatus = mqadmin.QueueManagerStatus{
+		Profile:      "prod",
+		Availability: mqadmin.Available,
+		Identity: mqadmin.Identity{
+			Configured: "QM1",
+			Observed:   "QM1",
+		},
+		LastChecked: time.Now().UTC(),
+	}
+	inspector := newInspectPool(t, fakeClient)
+
+	report, err := inspector.CheckProfileConnectivity(context.Background(), "prod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !report.Reachable || !report.IdentityMatch {
+		t.Fatalf("report = %+v", report)
+	}
+	if report.LatencyMs < 0 {
+		t.Fatalf("latency = %d", report.LatencyMs)
+	}
+	if fakeClient.QMStatusCalls != 1 {
+		t.Fatalf("qm status calls = %d", fakeClient.QMStatusCalls)
+	}
+}
+
+func TestInspectorCheckProfileConnectivityDeniedBeforeAdapter(t *testing.T) {
+	fakeClient := fake.New("prod")
+	t.Setenv("IBM_MQ_MCP_INSPECT_SECRET", "user:pass")
+	cat, err := catalog.LoadYAML([]byte(browseOnlyInspectDoc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	factory := func(_ catalog.Profile, _ *secrets.Resolver) (mqadmin.Client, error) {
+		return fakeClient, nil
+	}
+	pool := newPool(t, cat, nil, factory)
+	inspector := application.NewInspector(pool)
+
+	_, err = inspector.CheckProfileConnectivity(context.Background(), "prod")
+	if err == nil {
+		t.Fatal("expected policy denial")
+	}
+	if fakeClient.TotalCalls() != 0 {
+		t.Fatalf("adapter invoked on deny: total=%d", fakeClient.TotalCalls())
+	}
+}
+
+func TestInspectorCheckProfileConnectivityUnreachableDNS(t *testing.T) {
+	fakeClient := fake.New("prod")
+	fakeClient.QMStatusErr = &net.DNSError{IsNotFound: true, Name: "mq.example.test"}
+	inspector := newInspectPool(t, fakeClient)
+
+	report, err := inspector.CheckProfileConnectivity(context.Background(), "prod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.Reachable {
+		t.Fatal("expected unreachable report")
+	}
+	if report.FailureCause != mqadmin.FailureDNS {
+		t.Fatalf("cause = %q", report.FailureCause)
+	}
+}
+
+func TestInspectorCheckProfileConnectivityAuthorization(t *testing.T) {
+	fakeClient := fake.New("prod")
+	fakeClient.QMStatusErr = mqadmin.MapReasonCode(2035)
+	inspector := newInspectPool(t, fakeClient)
+
+	report, err := inspector.CheckProfileConnectivity(context.Background(), "prod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.FailureCause != mqadmin.FailureAuthorization {
+		t.Fatalf("cause = %q detail=%q", report.FailureCause, report.Detail)
+	}
+}
+
+func TestInspectorCheckProfileConnectivityStaleIdentity(t *testing.T) {
+	fakeClient := fake.New("prod")
+	fakeClient.QMStatus = mqadmin.QueueManagerStatus{
+		Profile:      "prod",
+		Availability: mqadmin.Stale,
+		Identity: mqadmin.Identity{
+			Configured: "QM1",
+			Observed:   "QM2",
+		},
+	}
+	inspector := newInspectPool(t, fakeClient)
+
+	report, err := inspector.CheckProfileConnectivity(context.Background(), "prod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !report.Reachable {
+		t.Fatalf("stale should still be reachable: %+v", report)
+	}
+	if report.IdentityMatch {
+		t.Fatal("expected identity mismatch")
+	}
+}
+
+func TestInspectorCheckProfileConnectivitySecretFailure(t *testing.T) {
+	doc := `
+profiles:
+  prod:
+    queueManager: QM1
+    endpoint: https://mq.example.test:9443
+    authentication:
+      type: basic
+      secretRef: env:IBM_MQ_MCP_MISSING_SECRET
+    tls:
+      insecureSkipVerify: true
+    capabilities:
+      - inspect
+`
+	cat, err := catalog.LoadYAML([]byte(doc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	factory := func(profile catalog.Profile, resolver *secrets.Resolver) (mqadmin.Client, error) {
+		return mqweb.NewAdminClient(profile, resolver)
+	}
+	pool := newPool(t, cat, nil, factory)
+	inspector := application.NewInspector(pool)
+
+	report, err := inspector.CheckProfileConnectivity(context.Background(), "prod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.FailureCause != mqadmin.FailureAuthentication {
+		t.Fatalf("cause = %q detail=%q", report.FailureCause, report.Detail)
 	}
 }

@@ -16,6 +16,18 @@ import (
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/policy"
 )
 
+const browseOnlyProfileDoc = `
+profiles:
+  prod:
+    queueManager: QM1
+    endpoint: https://mq.example.test:9443
+    authentication:
+      type: basic
+      secretRef: env:IBM_MQ_MCP_TOOL_SECRET
+    capabilities:
+      - browse
+`
+
 func TestInspectionToolsRegistered(t *testing.T) {
 	t.Cleanup(mcpserver.ResetRegisteredTools)
 	pool := testInspectPool(t, fake.New("prod"))
@@ -41,8 +53,8 @@ func TestInspectionToolsRegistered(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListTools: %v", err)
 	}
-	if len(res.Tools) != 12 {
-		t.Fatalf("expected 12 tools, got %d", len(res.Tools))
+	if len(res.Tools) != 14 {
+		t.Fatalf("expected 14 tools, got %d", len(res.Tools))
 	}
 }
 
@@ -76,19 +88,8 @@ func TestListProfilesToolReturnsStructuredContent(t *testing.T) {
 func TestQueueManagerStatusDeniedBeforeAdapter(t *testing.T) {
 	t.Cleanup(mcpserver.ResetRegisteredTools)
 	fakeClient := fake.New("prod")
-	doc := `
-profiles:
-  prod:
-    queueManager: QM1
-    endpoint: https://mq.example.test:9443
-    authentication:
-      type: basic
-      secretRef: env:IBM_MQ_MCP_TOOL_SECRET
-    capabilities:
-      - browse
-`
 	t.Setenv("IBM_MQ_MCP_TOOL_SECRET", "user:pass")
-	cat, err := catalog.LoadYAML([]byte(doc))
+	cat, err := catalog.LoadYAML([]byte(browseOnlyProfileDoc))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -125,19 +126,8 @@ profiles:
 func TestListChannelsDeniedBeforeAdapter(t *testing.T) {
 	t.Cleanup(mcpserver.ResetRegisteredTools)
 	fakeClient := fake.New("prod")
-	doc := `
-profiles:
-  prod:
-    queueManager: QM1
-    endpoint: https://mq.example.test:9443
-    authentication:
-      type: basic
-      secretRef: env:IBM_MQ_MCP_TOOL_SECRET
-    capabilities:
-      - browse
-`
 	t.Setenv("IBM_MQ_MCP_TOOL_SECRET", "user:pass")
-	cat, err := catalog.LoadYAML([]byte(doc))
+	cat, err := catalog.LoadYAML([]byte(browseOnlyProfileDoc))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -190,8 +180,7 @@ func connectInspectClient(t *testing.T, server *mcp.Server) *mcp.ClientSession {
 
 func testInspectPool(t *testing.T, fakeClient *fake.Client) *application.ProfilePool {
 	t.Helper()
-	t.Setenv("IBM_MQ_MCP_TOOL_SECRET", "user:pass")
-	doc := `
+	return testInspectPoolWithDoc(t, `
 profiles:
   prod:
     queueManager: QM1
@@ -203,7 +192,12 @@ profiles:
       insecureSkipVerify: true
     capabilities:
       - inspect
-`
+`, fakeClient)
+}
+
+func testInspectPoolWithDoc(t *testing.T, doc string, fakeClient *fake.Client) *application.ProfilePool {
+	t.Helper()
+	t.Setenv("IBM_MQ_MCP_TOOL_SECRET", "user:pass")
 	cat, err := catalog.LoadYAML([]byte(doc))
 	if err != nil {
 		t.Fatal(err)
@@ -231,6 +225,9 @@ func TestRegisteredToolSpecsRequireInspect(t *testing.T) {
 	pool := testInspectPool(t, nil)
 	mcpserver.NewWithInspector(application.NewInspector(pool))
 	for _, name := range mcpserver.RegisteredToolNames() {
+		if name == "explain_mq_reason_code" {
+			continue
+		}
 		found := false
 		for _, spec := range mcpserver.RegisteredTools {
 			if spec.Name == name {

@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/collection"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/config/catalog"
@@ -190,6 +191,31 @@ func (i *Inspector) GetSubscription(
 		return mqadmin.SubscriptionDetail{}, err
 	}
 	return client.GetSubscription(ctx, subscriptionID)
+}
+
+// CheckProfileConnectivity verifies mqweb reachability and queue manager identity without mutation.
+func (i *Inspector) CheckProfileConnectivity(
+	ctx context.Context,
+	profileName string,
+) (mqadmin.ConnectivityReport, error) {
+	profile, err := i.pool.requireProfile(profileName)
+	if err != nil {
+		return mqadmin.ConnectivityReport{}, err
+	}
+	if authErr := i.pool.gate.Authorize(profile, policy.Inspect, "check_profile_connectivity"); authErr != nil {
+		return mqadmin.ConnectivityReport{}, authErr
+	}
+	start := time.Now()
+	client, err := i.pool.adminClient(profileName)
+	if err != nil {
+		return mqadmin.BuildConnectivityReport(
+			profileName, profile.Endpoint, profile.QueueManager, start, mqadmin.QueueManagerStatus{}, err,
+		), nil
+	}
+	status, qmErr := client.QueueManagerStatus(ctx, profile.QueueManager)
+	return mqadmin.BuildConnectivityReport(
+		profileName, profile.Endpoint, profile.QueueManager, start, status, qmErr,
+	), nil
 }
 
 // ListProfilesPage wraps ListProfiles in the shared collection envelope.
