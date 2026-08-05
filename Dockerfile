@@ -13,7 +13,8 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} \
     go build -trimpath -ldflags="-w -s" -o ibm-mq-mcp ./cmd/ibm-mq-mcp
 
-# Minimal nonroot runtime — read-only root filesystem friendly.
+# Minimal nonroot runtime. HEALTHCHECK and k8s securityContext readOnlyRootFilesystem
+# guidance belong in OBS-001 / deployment docs, not this image build.
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /
 COPY --from=builder /workspace/ibm-mq-mcp /ibm-mq-mcp

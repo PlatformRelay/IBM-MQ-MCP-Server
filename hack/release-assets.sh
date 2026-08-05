@@ -39,10 +39,11 @@ done
 
 (
   cd "${DIST}"
-  files=("${BINARY}"_*_"${VERSION}"_*.tar.gz)
-  if [[ -f "sbom.spdx.json" ]]; then
-    files+=("sbom.spdx.json")
+  if [[ ! -f "sbom.spdx.json" ]]; then
+    echo "sbom.spdx.json missing from ${DIST}/ (required for checksums)" >&2
+    exit 1
   fi
+  files=("${BINARY}"_*_"${VERSION}"_*.tar.gz "sbom.spdx.json")
   sha256sum "${files[@]}" >checksums.txt
 )
 

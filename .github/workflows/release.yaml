@@ -14,6 +14,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+  cancel-in-progress: false
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ibm-mq-mcp
@@ -22,6 +26,9 @@ jobs:
   release:
     name: release
     runs-on: ubuntu-latest
+    # OIDC for cosign keyless signing; create the GitHub "release" environment
+    # (Settings → Environments) before the first tagged release if it does not exist.
+    environment: release
     permissions:
       contents: write
       packages: write

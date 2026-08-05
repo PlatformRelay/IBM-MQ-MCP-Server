@@ -15,7 +15,9 @@ Release automation follows the supply-chain pattern used by Kollect and MKurator
 ## Prerequisites
 
 1. Green CI on `main` (`task check`, docs, Scorecard, CodeQL).
-2. GitHub `release` environment configured for the repo (OIDC for cosign).
+2. GitHub **`release` environment** configured for the repo (Settings → Environments →
+   **New environment** → name `release`; optional required reviewers). OIDC for cosign uses this
+   environment — create it before the first tagged release if it does not exist.
 3. GHCR package visibility set as intended for `ghcr.io/platformrelay/ibm-mq-mcp`.
 
 ## Cut a release
@@ -50,14 +52,18 @@ omission).
 
 ## Verify a release
 
+Use the repository slug GitHub OIDC embeds in cosign certificates (`${GITHUB_REPOSITORY}` — for this
+repo, `PlatformRelay/IBM-MQ-MCP-Server`):
+
 ```bash
 VERSION=0.1.0
 IMAGE=ghcr.io/platformrelay/ibm-mq-mcp
 DIGEST="$(crane digest ${IMAGE}:${VERSION})"
+GITHUB_REPOSITORY=PlatformRelay/IBM-MQ-MCP-Server
 
 cosign verify \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  --certificate-identity-regexp '^https://github.com/platformrelay/ibm-mq-mcp/.+' \
+  --certificate-identity-regexp "^https://github.com/${GITHUB_REPOSITORY}/.+" \
   "${IMAGE}@${DIGEST}"
 
 sha256sum -c checksums.txt
@@ -71,6 +77,10 @@ docker inspect --format '{{.Config.User}}' ibm-mq-mcp:dev   # expect 65532:65532
 ```
 
 CI runs the same build (without push) in the `docker-build` job.
+
+Container **HEALTHCHECK**, readiness probes, and Kubernetes `securityContext.readOnlyRootFilesystem`
+guidance are deferred to **OBS-001** (health/readiness/deployment hardening) and future deployment
+docs — not part of the v0 release image contract.
 
 ## Manual re-run
 

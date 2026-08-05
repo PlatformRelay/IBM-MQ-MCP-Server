@@ -2,8 +2,8 @@
 # Commit subjects use Conventional Commits with a gitmoji token (see AGENTS.md).
 
 [remote.github]
-owner = "platformrelay"
-repo = "ibm-mq-mcp"
+owner = "PlatformRelay"
+repo = "IBM-MQ-MCP-Server"
 
 [changelog]
 header = """
@@ -20,7 +20,7 @@ on the default branch using [git-cliff](https://git-cliff.org/).
 body = """
 {% if version -%}
   {% if previous.version -%}
-    ## [{{ version | trim_start_matches(pat="v") }}](https://github.com/platformrelay/ibm-mq-mcp/compare/{{ previous.version }}..{{ version }}) - {{ timestamp | date(format="%Y-%m-%d") }}
+    ## [{{ version | trim_start_matches(pat="v") }}](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/compare/{{ previous.version }}..{{ version }}) - {{ timestamp | date(format="%Y-%m-%d") }}
   {% else -%}
     ## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
   {% endif -%}
@@ -34,8 +34,8 @@ body = """
     - {% if commit.scope %}**{{ commit.scope }}:** {% endif %}\
       {% if commit.breaking %}[**breaking**] {% endif %}\
       {{ commit.message | upper_first }} \
-      {% if commit.remote.pr_number %}([#{{ commit.remote.pr_number }}](https://github.com/platformrelay/ibm-mq-mcp/pull/{{ commit.remote.pr_number }})) {% endif %}\
-      [{{ commit.id | truncate(length=7, end="") }}](https://github.com/platformrelay/ibm-mq-mcp/commit/{{ commit.id }})
+      {% if commit.remote.pr_number %}([#{{ commit.remote.pr_number }}](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/pull/{{ commit.remote.pr_number }})) {% endif %}\
+      [{{ commit.id | truncate(length=7, end="") }}](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/commit/{{ commit.id }})
   {% endfor %}
 {% endfor %}
 """

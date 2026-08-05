@@ -49,6 +49,8 @@ func TestReleaseWorkflowDefinesSupplyChainSteps(t *testing.T) {
 		"aquasecurity/trivy-action",
 		"provenance: mode=max",
 		"sbom: true",
+		"id-token: write",
+		"environment: release",
 		"ghcr.io",
 		"ibm-mq-mcp",
 	}
@@ -56,6 +58,17 @@ func TestReleaseWorkflowDefinesSupplyChainSteps(t *testing.T) {
 		if !strings.Contains(body, fragment) {
 			t.Errorf("release.yaml missing required fragment %q", fragment)
 		}
+	}
+
+	trivySeverity := regexp.MustCompile(`(?m)severity:\s*CRITICAL,HIGH`)
+	trivyExitCode := regexp.MustCompile(`(?m)exit-code:\s*1`)
+	if !trivySeverity.MatchString(body) && !trivyExitCode.MatchString(body) {
+		t.Error("release.yaml Trivy step must set severity CRITICAL,HIGH and/or exit-code 1")
+	}
+
+	concurrency := regexp.MustCompile(`(?m)^concurrency:`)
+	if !concurrency.MatchString(body) {
+		t.Error("release.yaml missing concurrency group for tag/ref")
 	}
 
 	// FND-003 / DQ22: no Helm or Kustomize in v0 release pipeline.
