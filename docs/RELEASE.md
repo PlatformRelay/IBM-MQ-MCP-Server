@@ -30,7 +30,7 @@ git tag -a v0.1.0 -m "v0.1.0"
 git push origin v0.1.0
 ```
 
-Pushing a `v*.*.*` tag triggers [`.github/workflows/release.yaml`](../.github/workflows/release.yaml).
+Pushing a `v*.*.*` tag triggers [`.github/workflows/release.yaml`](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/.github/workflows/release.yaml).
 
 ## What the release workflow does
 
