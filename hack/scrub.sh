@@ -16,10 +16,14 @@ tmp="$(mktemp)"
 trap 'rm -f "${tmp}"' EXIT
 
 if [[ "${MODE}" == "tree" ]]; then
-  git ls-files >"${tmp}"
+  git ls-files >"${tmp}.raw"
 else
-  git diff --cached --name-only --diff-filter=ACMR >"${tmp}"
+  git diff --cached --name-only --diff-filter=ACMR >"${tmp}.raw"
 fi
+
+# Exclude scrub tooling itself so pattern literals cannot self-match (Kollect pattern).
+grep -Ev '^hack/scrub(-patterns\.txt|\.sh)$' "${tmp}.raw" >"${tmp}" || true
+rm -f "${tmp}.raw"
 
 if [[ ! -s "${tmp}" ]]; then
   echo "scrub: nothing to scan"

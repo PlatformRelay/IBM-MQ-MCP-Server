@@ -23,6 +23,7 @@ The workflow `.github/workflows/ci.yaml` defines:
 | `lint` | golangci-lint (govet-class + static analysis) |
 | `test` | `-race` unit tests, coverage floor, CGO-free build |
 | `vulncheck` | `govulncheck` |
+| `scrub` | Forbidden-pattern scrub (`task scrub:tree`) |
 
 CodeQL runs in `.github/workflows/codeql.yaml`. Dependabot and Renovate are
 configured at the repository root.

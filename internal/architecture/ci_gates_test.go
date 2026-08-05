@@ -16,6 +16,7 @@ var requiredCIJobs = []string{
 	"lint",
 	"test",
 	"vulncheck",
+	"scrub",
 }
 
 func TestCIWorkflowDefinesRequiredJobs(t *testing.T) {
