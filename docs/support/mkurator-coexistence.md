@@ -4,12 +4,10 @@ IBM MQ MCP Server targets **generic IBM MQ** deployments. [MKurator](https://git
 (Kubernetes operator for declarative MQ) is an optional coexistence partner — not
 a runtime prerequisite.
 
-!!! warning "Blocked — ADR-0007 open"
-    Ownership discovery, warn/block/handoff behaviour, and Kubernetes API usage
-    are **undecided**. This page describes draft intent from
-    [openspec/changes/mkurator-coexistence](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/openspec/changes/mkurator-coexistence/proposal.md);
-    track [ADR-0007](../adr/README.md#decision-queue) and
-    [INT-001](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/agent-context/stories/INT-001.md).
+!!! note "ADR-0007 accepted"
+    v0 is **advisory only**: the MCP server does not create or apply MKurator
+    custom resources. Ownership is declared in profile catalog metadata; live
+    Kubernetes discovery is deferred. See [ADR-0007](../adr/0007-mkurator-coexistence.md).
 
 ## Principles
 
@@ -17,33 +15,40 @@ a runtime prerequisite.
 | --- | --- |
 | No Kubernetes required | The same binary must operate for non-Kubernetes MQ estates |
 | No reconciliation duplication | This server does not replace MKurator controllers |
-| Explicit degradation | Missing or stale K8s access is reported; MQ policy is not weakened |
-| Policy before mutation | Ownership checks hook into guarded administration ([ADM-001](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/agent-context/stories/ADM-001.md)) |
+| Explicit degradation | Missing ownership metadata is treated as unmanaged |
+| Policy before mutation | INT-001 pre-mutation hook runs before ADM-001 queue mutations |
 
-## Draft in-scope behaviour (TBD)
+## v0 behaviour
 
-When enabled and ADR-0007 accepts:
+- **Catalog ownership** — `mkurator.managedObjects` on a profile lists queue
+  name patterns (exact or `PREFIX*`) managed declaratively.
+- **Object tags (stub)** — queue descriptions prefixed with
+  `mkurator.platformrelay.io/managed=` supply ownership when present.
+- **Mutation policy** — `mkurator.mutationPolicy` defaults to `warn`; set
+  `block` to fail closed before mqweb I/O.
+- **No CR apply** — mutations remain imperative mqweb calls; operators reconcile
+  via MKurator/GitOps separately.
 
-- Configured ownership discovery via published MKurator APIs
-- Ownership/freshness annotations on inspection results ([INS-001](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/agent-context/stories/INS-001.md))
-- Pre-mutation policy hook — warn, block, or declarative handoff per ADR-0007
+## Configuration example
 
-## Draft out-of-scope
-
-- Applying MKurator custom resources unless ADR-0007 explicitly approves
-- Deploying or upgrading queue managers
-- Replacing MKurator as the source of truth for managed objects
-
-## Design questions
-
-See [design questions 18–20](../product/design-questions.md):
-
-- Advisory vs blocking vs CR handoff
-- Discovery via Kubernetes API vs explicit config
-- Direct admin of managed objects — warn or block?
+```yaml
+profiles:
+  prod:
+    queueManager: QM1
+    endpoint: https://mq.example:9443
+    authentication: { type: basic, secretRef: env:MQ_SECRET }
+    tls: { insecureSkipVerify: true }
+    capabilities: [inspect, administer]
+    mkurator:
+      mutationPolicy: warn
+      managedObjects:
+        - kind: queue
+          name: APP.*
+```
 
 ## Related pages
 
 - [Threat model](../security/threat-model.md)
 - [Policy](../policy.md)
-- [Version support matrix](version-matrix.md)
+- [Tool reference — queue administration](../tools/index.md)
+- [Design questions 18–20](../product/design-questions.md)

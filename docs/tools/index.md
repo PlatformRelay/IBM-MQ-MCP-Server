@@ -27,9 +27,15 @@ gated destructive consume. Results are returned as JSON `structuredContent` ([AD
 | `browse_queue_messages` | `browse` | Bounded non-destructive queue browse; metadata by default, optional payloads |
 | `put_queue_message` | `produce` | Put one validated message; returns identifiers only (no payload echo) |
 | `consume_queue_messages` | `consume` | Destructively get bounded messages (one mqweb DELETE each); metadata by default, optional payloads; mid-batch failures return partial results with `truncated: true` |
+| `define_queue` | `administer` | Create a queue with typed LOCAL/ALIAS/REMOTE/MODEL attributes; destructive |
+| `alter_queue` | `administer` | Alter supported queue attributes (`maxDepth`, `description`); destructive |
+| `delete_queue` | `administer` | Delete a queue definition; destructive and irreversible for queued messages |
+
+ADM-001 queue mutations invoke the INT-001 pre-mutation hook ([ADR-0007](../adr/0007-mkurator-coexistence.md))
+before mqweb I/O. Dry-run is **not** supported for queue mutations.
 
 Policy denies remote tools before credential resolution or mqweb I/O when the
-active profile lacks the required capability (`inspect`, `browse`, etc.). The offline reason-code tool never performs MQ
+active profile lacks the required capability (`inspect`, `browse`, `administer`, etc.). The offline reason-code tool never performs MQ
 I/O. See [NOTICE](../NOTICE.md) for IBM MQRC attribution.
 
 !!! note "Collection contract (ADR-0005)"

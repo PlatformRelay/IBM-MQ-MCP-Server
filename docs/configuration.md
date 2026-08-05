@@ -29,6 +29,7 @@ Top-level key **`profiles`**: map of stable profile name → profile object.
 | `authentication` | yes | mqweb credential method (see [Authentication](authentication.md)) |
 | `tls` | no | TLS settings (verification on by default) |
 | `capabilities` | yes | Operation grants per [ADR-0003](adr/0003-capability-model.md); enforced before secret resolution and MQ I/O |
+| `mkurator` | no | Optional MKurator coexistence metadata per [ADR-0007](adr/0007-mkurator-coexistence.md) |
 | `timeout` | no | Per-profile HTTP timeout (Go duration string, default `30s`) |
 
 Example (secret-free — refs only):

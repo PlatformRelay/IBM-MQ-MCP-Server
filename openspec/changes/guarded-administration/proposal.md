@@ -1,6 +1,6 @@
 # Guarded typed administration
 
-**Status:** Draft — blocked by ADR-0003, ADR-0007, and ADR-0008
+**Status:** In progress — ADR-0007 accepted; ADM-001 queue slice landing
 
 ## Why
 

@@ -46,5 +46,5 @@ metrics are enabled — see [Observability](observability.md).
 | ADR | Topic |
 | --- | --- |
 | [ADR-0003](adr/README.md#decision-queue) | Capability model — **blocks POL-001** |
-| [ADR-0007](adr/README.md#decision-queue) | MKurator ownership vs direct mutation |
+| [ADR-0007](adr/0007-mkurator-coexistence.md) | MKurator ownership vs direct mutation — **Accepted**; INT-001 hook before ADM mutations |
 | [ADR-0008](adr/README.md#decision-queue) | Raw MQSC policy |
