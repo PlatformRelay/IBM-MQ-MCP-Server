@@ -24,7 +24,7 @@
 | `consume` | Destructive get/consume — separately gated from `browse` |
 | `produce` | Put messages with validation |
 | `administer` | Typed define/alter/delete for MQ objects |
-| `execute_mqsc` | Exceptional raw MQSC — disabled by default ([ADR-0008](adr/README.md#decision-queue)) |
+| `execute_mqsc` | Exceptional raw MQSC — disabled by default ([ADR-0008](adr/0008-raw-mqsc-policy.md) **Accepted**) |
 
 Mixed read/write across environments is expressed by **different profiles**, not
 by toggling modes at runtime. See [Examples](examples/README.md).
@@ -47,4 +47,4 @@ metrics are enabled — see [Observability](observability.md).
 | --- | --- |
 | [ADR-0003](adr/README.md#decision-queue) | Capability model — **blocks POL-001** |
 | [ADR-0007](adr/0007-mkurator-coexistence.md) | MKurator ownership vs direct mutation — **Accepted**; INT-001 hook before ADM mutations |
-| [ADR-0008](adr/README.md#decision-queue) | Raw MQSC policy |
+| [ADR-0008](adr/0008-raw-mqsc-policy.md) | Raw MQSC policy — **Accepted** |

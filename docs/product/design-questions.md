@@ -26,8 +26,10 @@ tool design. Approved answers will be recorded in ADRs and linked stories.
    **Answered (ADR-0003):** Yes — `consume` is separate from `browse`.
 8. ~~Should raw MQSC be omitted, allowlisted, or available behind an exceptional
    capability?~~
-   **Answered (ADR-0003):** `execute_mqsc` is an exceptional, off-by-default
-   capability; it is not implied by `administer`.
+   **Answered ([ADR-0008](../adr/0008-raw-mqsc-policy.md)):** absent by default;
+   double opt-in (`--enable-mqsc` + profile `execute_mqsc`); v0 verb allowlist
+   is read-only (`DISPLAY`/`DIS`/`PING`); parse and validate before mqweb I/O;
+   audit redacted command text. Default config registers no MQSC tool.
 9. ~~Are profile-level permissions sufficient initially, or are queue/object name
    allowlists required in the first release?~~
    **Answered (ADR-0003):** Profile-level capabilities are sufficient for v0;

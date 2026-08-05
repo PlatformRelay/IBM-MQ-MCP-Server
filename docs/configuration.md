@@ -11,6 +11,8 @@
 | `--config` | Path to the profile catalog YAML or JSON file |
 | `IBM_MQ_MCP_CONFIG` | Same as `--config` when the flag is omitted |
 | `--strict-startup` | Fail process start if any profile fails validation |
+| `--enable-mqsc` | Register exceptional raw MQSC tool ([ADR-0008](adr/0008-raw-mqsc-policy.md)); requires profile `execute_mqsc` at call time |
+| `IBM_MQ_MCP_ENABLE_MQSC` | Same as `--enable-mqsc` when the flag is omitted (truthy: `1`, `true`, `yes`, `on`) |
 | `--ops-addr` | Optional ops HTTP listen address (see [Observability](observability.md)) |
 | `IBM_MQ_MCP_OPS_ADDR` | Same as `--ops-addr` when the flag is omitted |
 

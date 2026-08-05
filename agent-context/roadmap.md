@@ -106,7 +106,7 @@ requires ADR-0007.
 [Story](stories/ADM-002.md)
 
 ### ADM-003 — Raw MQSC exceptional gate
-🛑 Blocked · Requires ADR-0008.
+✅ Done · ADR-0008 accepted; lane/adm-003.
 [Story](stories/ADM-003.md)
 
 ## EPIC-007 — Remote access, audit, and operability

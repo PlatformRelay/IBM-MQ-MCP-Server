@@ -39,6 +39,7 @@ gated destructive consume. Results are returned as JSON `structuredContent` ([AD
 | `define_authrec` | `administer` | Grant typed authorities on an object profile; security-sensitive |
 | `alter_authrec` | `administer` | Add or remove authority grants on an AUTHREC; security-sensitive |
 | `delete_authrec` | `administer` | Delete an authority record; security-sensitive, requires exact target identity |
+| `execute_mqsc` | `execute_mqsc` | Exceptional read-only raw MQSC (`DISPLAY`/`DIS`/`PING` only); **not registered by default** — requires server `--enable-mqsc` ([ADR-0008](../adr/0008-raw-mqsc-policy.md)) |
 
 ADM-001 queue mutations and ADM-002 channel/CHLAUTH/authrec mutations invoke the INT-001 pre-mutation hook ([ADR-0007](../adr/0007-mkurator-coexistence.md))
 before mqweb I/O. Dry-run is **not** supported for administration mutations.
