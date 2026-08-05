@@ -41,8 +41,8 @@ func TestInspectionToolsRegistered(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListTools: %v", err)
 	}
-	if len(res.Tools) != 4 {
-		t.Fatalf("expected 4 tools, got %d", len(res.Tools))
+	if len(res.Tools) != 12 {
+		t.Fatalf("expected 12 tools, got %d", len(res.Tools))
 	}
 }
 
@@ -117,8 +117,56 @@ profiles:
 	if !res.IsError {
 		t.Fatal("expected tool error for policy denial")
 	}
-	qm, list, get, ping := fakeClient.Calls()
-	if qm+list+get+ping != 0 {
+	if fakeClient.TotalCalls() != 0 {
+		t.Fatalf("adapter invoked on deny")
+	}
+}
+
+func TestListChannelsDeniedBeforeAdapter(t *testing.T) {
+	t.Cleanup(mcpserver.ResetRegisteredTools)
+	fakeClient := fake.New("prod")
+	doc := `
+profiles:
+  prod:
+    queueManager: QM1
+    endpoint: https://mq.example.test:9443
+    authentication:
+      type: basic
+      secretRef: env:IBM_MQ_MCP_TOOL_SECRET
+    capabilities:
+      - browse
+`
+	t.Setenv("IBM_MQ_MCP_TOOL_SECRET", "user:pass")
+	cat, err := catalog.LoadYAML([]byte(doc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	factory := func(_ catalog.Profile, _ *secrets.Resolver) (mqadmin.Client, error) {
+		return fakeClient, nil
+	}
+	pool := application.NewProfilePool(
+		cat,
+		cat.Validate(),
+		secrets.NewResolver(),
+		nil,
+		application.WithAdminFactory(factory),
+	)
+	t.Cleanup(func() { _ = pool.Close() })
+	server := mcpserver.NewWithInspector(application.NewInspector(pool))
+	session := connectInspectClient(t, server)
+	t.Cleanup(func() { _ = session.Close() })
+
+	res, err := session.CallTool(context.Background(), &mcp.CallToolParams{
+		Name:      "list_channels",
+		Arguments: map[string]any{"profile": "prod", "limit": 10},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !res.IsError {
+		t.Fatal("expected tool error for policy denial")
+	}
+	if fakeClient.TotalCalls() != 0 {
 		t.Fatalf("adapter invoked on deny")
 	}
 }

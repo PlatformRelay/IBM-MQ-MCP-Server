@@ -132,3 +132,85 @@ func TestInspectorRequiresInspectCapability(t *testing.T) {
 		t.Fatalf("expected DenialError, got %v", err)
 	}
 }
+
+func TestInspectorDeniesListChannelsBeforeAdapter(t *testing.T) {
+	fakeClient := fake.New("prod")
+	poolDoc := `
+profiles:
+  prod:
+    queueManager: QM1
+    endpoint: https://mq.example.test:9443
+    authentication:
+      type: basic
+      secretRef: env:IBM_MQ_MCP_INSPECT_SECRET
+    capabilities:
+      - browse
+`
+	t.Setenv("IBM_MQ_MCP_INSPECT_SECRET", "user:pass")
+	cat, err := catalog.LoadYAML([]byte(poolDoc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	factory := func(_ catalog.Profile, _ *secrets.Resolver) (mqadmin.Client, error) {
+		return fakeClient, nil
+	}
+	pool := newPool(t, cat, nil, factory)
+	inspector := application.NewInspector(pool)
+
+	_, err = inspector.ListChannels(context.Background(), "prod", mqadmin.ListChannelsRequest{Limit: 10})
+	if err == nil {
+		t.Fatal("expected policy denial")
+	}
+	if fakeClient.TotalCalls() != 0 {
+		t.Fatalf("adapter invoked on deny: total=%d", fakeClient.TotalCalls())
+	}
+}
+
+func TestInspectorListChannelsHappyPath(t *testing.T) {
+	fakeClient := fake.New("prod")
+	fakeClient.ListChannelsPage.Items = []mqadmin.ChannelSummary{{Name: "DEV.SVRCONN", Type: "serverConnection"}}
+	inspector := newInspectPool(t, fakeClient)
+
+	page, err := inspector.ListChannels(context.Background(), "prod", mqadmin.ListChannelsRequest{Limit: 10})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Items) != 1 || page.Items[0].Name != "DEV.SVRCONN" {
+		t.Fatalf("page = %+v", page)
+	}
+	if fakeClient.ListChannelsCalls != 1 {
+		t.Fatalf("expected adapter list call")
+	}
+}
+
+func TestInspectorGetChannelStatusUnavailableWithoutRuntime(t *testing.T) {
+	fakeClient := fake.New("prod")
+	fakeClient.ChannelStatus = mqadmin.ChannelStatus{
+		Name:         "DEV.SVRCONN",
+		Availability: mqadmin.Unavailable,
+		Error:        "runtime status not returned by mqweb",
+	}
+	inspector := newInspectPool(t, fakeClient)
+
+	status, err := inspector.GetChannelStatus(context.Background(), "prod", "DEV.SVRCONN")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status.Availability != mqadmin.Unavailable {
+		t.Fatalf("availability = %q", status.Availability)
+	}
+}
+
+func TestInspectorListListenersUnsupported(t *testing.T) {
+	fakeClient := fake.New("prod")
+	fakeClient.ListListenersErr = mqadmin.UnsupportedFamily("listener")
+	inspector := newInspectPool(t, fakeClient)
+
+	_, err := inspector.ListListeners(context.Background(), "prod", mqadmin.ListListenersRequest{Limit: 10})
+	if err == nil {
+		t.Fatal("expected unsupported error")
+	}
+	if _, ok := mqadmin.AsUnsupportedError(err); !ok {
+		t.Fatalf("expected UnsupportedError, got %v", err)
+	}
+}

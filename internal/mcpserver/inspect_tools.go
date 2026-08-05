@@ -17,6 +17,15 @@ const (
 	toolQueueManagerStatus = "queue_manager_status"
 	toolListQueues         = "list_queues"
 	toolGetQueue           = "get_queue"
+
+	toolListChannels      = "list_channels"
+	toolGetChannel        = "get_channel"
+	toolGetChannelStatus  = "get_channel_status"
+	toolListListeners     = "list_listeners"
+	toolGetListener       = "get_listener"
+	toolGetListenerStatus = "get_listener_status"
+	toolListSubscriptions = "list_subscriptions"
+	toolGetSubscription   = "get_subscription"
 )
 
 type listProfilesInput struct {
@@ -39,6 +48,43 @@ type listQueuesInput struct {
 type getQueueInput struct {
 	Profile string `json:"profile" jsonschema:"required"`
 	Queue   string `json:"queue" jsonschema:"required"`
+}
+
+type listChannelsInput struct {
+	Profile     string `json:"profile" jsonschema:"required"`
+	NamePrefix  string `json:"namePrefix,omitempty"`
+	ChannelType string `json:"channelType,omitempty"`
+	Limit       int    `json:"limit,omitempty"`
+	Cursor      string `json:"cursor,omitempty"`
+}
+
+type channelInput struct {
+	Profile string `json:"profile" jsonschema:"required"`
+	Channel string `json:"channel" jsonschema:"required"`
+}
+
+type listListenersInput struct {
+	Profile    string `json:"profile" jsonschema:"required"`
+	NamePrefix string `json:"namePrefix,omitempty"`
+	Limit      int    `json:"limit,omitempty"`
+	Cursor     string `json:"cursor,omitempty"`
+}
+
+type listenerInput struct {
+	Profile  string `json:"profile" jsonschema:"required"`
+	Listener string `json:"listener" jsonschema:"required"`
+}
+
+type listSubscriptionsInput struct {
+	Profile    string `json:"profile" jsonschema:"required"`
+	NamePrefix string `json:"namePrefix,omitempty"`
+	Limit      int    `json:"limit,omitempty"`
+	Cursor     string `json:"cursor,omitempty"`
+}
+
+type subscriptionInput struct {
+	Profile      string `json:"profile" jsonschema:"required"`
+	Subscription string `json:"subscription" jsonschema:"required"`
 }
 
 // RegisterInspectionTools wires INS-001 tools when a profile pool is configured.
@@ -66,6 +112,46 @@ func RegisterInspectionTools(server *mcp.Server, inspector *application.Inspecto
 			Name:               toolGetQueue,
 			RequiredCapability: policy.Inspect,
 			Description:        "Get queue definition and live status including current depth.",
+		},
+		{
+			Name:               toolListChannels,
+			RequiredCapability: policy.Inspect,
+			Description:        "List channels with filters, cursor pagination, and truncation metadata.",
+		},
+		{
+			Name:               toolGetChannel,
+			RequiredCapability: policy.Inspect,
+			Description:        "Get channel definition attributes without runtime status.",
+		},
+		{
+			Name:               toolGetChannelStatus,
+			RequiredCapability: policy.Inspect,
+			Description:        "Get channel runtime status, distinguishing unavailable from configured definitions.",
+		},
+		{
+			Name:               toolListListeners,
+			RequiredCapability: policy.Inspect,
+			Description:        "List listeners with filters, cursor pagination, and truncation metadata.",
+		},
+		{
+			Name:               toolGetListener,
+			RequiredCapability: policy.Inspect,
+			Description:        "Get listener definition attributes without runtime status.",
+		},
+		{
+			Name:               toolGetListenerStatus,
+			RequiredCapability: policy.Inspect,
+			Description:        "Get listener runtime status, distinguishing unavailable from configured definitions.",
+		},
+		{
+			Name:               toolListSubscriptions,
+			RequiredCapability: policy.Inspect,
+			Description:        "List subscriptions with filters, cursor pagination, and truncation metadata.",
+		},
+		{
+			Name:               toolGetSubscription,
+			RequiredCapability: policy.Inspect,
+			Description:        "Get subscription definition by id or name.",
 		},
 	}
 	RegisteredTools = append(RegisteredTools, registered...)
@@ -142,6 +228,162 @@ func RegisterInspectionTools(server *mcp.Server, inspector *application.Inspecto
 		detail, err := inspector.GetQueue(ctx, in.Profile, in.Queue)
 		if err != nil {
 			return toolError(err), mqadmin.QueueDetail{}, nil
+		}
+		return &mcp.CallToolResult{}, detail, nil
+	})
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name: toolListChannels,
+		Description: ToolDescription(
+			"List channels with filters, cursor pagination, and truncation metadata.",
+			policy.Inspect,
+		),
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, in listChannelsInput) (
+		*mcp.CallToolResult,
+		collection.Page[mqadmin.ChannelSummary],
+		error,
+	) {
+		page, err := inspector.ListChannels(ctx, in.Profile, mqadmin.ListChannelsRequest{
+			Filter: mqadmin.ListChannelsFilter{NamePrefix: in.NamePrefix, ChannelType: in.ChannelType},
+			Limit:  in.Limit,
+			Cursor: in.Cursor,
+		})
+		if err != nil {
+			return toolError(err), collection.Page[mqadmin.ChannelSummary]{}, nil
+		}
+		return &mcp.CallToolResult{}, page, nil
+	})
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name: toolGetChannel,
+		Description: ToolDescription(
+			"Get channel definition attributes without runtime status.",
+			policy.Inspect,
+		),
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, in channelInput) (
+		*mcp.CallToolResult,
+		mqadmin.ChannelDetail,
+		error,
+	) {
+		detail, err := inspector.GetChannel(ctx, in.Profile, in.Channel)
+		if err != nil {
+			return toolError(err), mqadmin.ChannelDetail{}, nil
+		}
+		return &mcp.CallToolResult{}, detail, nil
+	})
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name: toolGetChannelStatus,
+		Description: ToolDescription(
+			"Get channel runtime status, distinguishing unavailable from configured definitions.",
+			policy.Inspect,
+		),
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, in channelInput) (
+		*mcp.CallToolResult,
+		mqadmin.ChannelStatus,
+		error,
+	) {
+		status, err := inspector.GetChannelStatus(ctx, in.Profile, in.Channel)
+		if err != nil {
+			return toolError(err), mqadmin.ChannelStatus{}, nil
+		}
+		return &mcp.CallToolResult{}, status, nil
+	})
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name: toolListListeners,
+		Description: ToolDescription(
+			"List listeners with filters, cursor pagination, and truncation metadata.",
+			policy.Inspect,
+		),
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, in listListenersInput) (
+		*mcp.CallToolResult,
+		collection.Page[mqadmin.ListenerSummary],
+		error,
+	) {
+		page, err := inspector.ListListeners(ctx, in.Profile, mqadmin.ListListenersRequest{
+			Filter: mqadmin.ListListenersFilter{NamePrefix: in.NamePrefix},
+			Limit:  in.Limit,
+			Cursor: in.Cursor,
+		})
+		if err != nil {
+			return toolError(err), collection.Page[mqadmin.ListenerSummary]{}, nil
+		}
+		return &mcp.CallToolResult{}, page, nil
+	})
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name: toolGetListener,
+		Description: ToolDescription(
+			"Get listener definition attributes without runtime status.",
+			policy.Inspect,
+		),
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, in listenerInput) (
+		*mcp.CallToolResult,
+		mqadmin.ListenerDetail,
+		error,
+	) {
+		detail, err := inspector.GetListener(ctx, in.Profile, in.Listener)
+		if err != nil {
+			return toolError(err), mqadmin.ListenerDetail{}, nil
+		}
+		return &mcp.CallToolResult{}, detail, nil
+	})
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name: toolGetListenerStatus,
+		Description: ToolDescription(
+			"Get listener runtime status, distinguishing unavailable from configured definitions.",
+			policy.Inspect,
+		),
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, in listenerInput) (
+		*mcp.CallToolResult,
+		mqadmin.ListenerStatus,
+		error,
+	) {
+		status, err := inspector.GetListenerStatus(ctx, in.Profile, in.Listener)
+		if err != nil {
+			return toolError(err), mqadmin.ListenerStatus{}, nil
+		}
+		return &mcp.CallToolResult{}, status, nil
+	})
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name: toolListSubscriptions,
+		Description: ToolDescription(
+			"List subscriptions with filters, cursor pagination, and truncation metadata.",
+			policy.Inspect,
+		),
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, in listSubscriptionsInput) (
+		*mcp.CallToolResult,
+		collection.Page[mqadmin.SubscriptionSummary],
+		error,
+	) {
+		page, err := inspector.ListSubscriptions(ctx, in.Profile, mqadmin.ListSubscriptionsRequest{
+			Filter: mqadmin.ListSubscriptionsFilter{NamePrefix: in.NamePrefix},
+			Limit:  in.Limit,
+			Cursor: in.Cursor,
+		})
+		if err != nil {
+			return toolError(err), collection.Page[mqadmin.SubscriptionSummary]{}, nil
+		}
+		return &mcp.CallToolResult{}, page, nil
+	})
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name: toolGetSubscription,
+		Description: ToolDescription(
+			"Get subscription definition by id or name.",
+			policy.Inspect,
+		),
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, in subscriptionInput) (
+		*mcp.CallToolResult,
+		mqadmin.SubscriptionDetail,
+		error,
+	) {
+		detail, err := inspector.GetSubscription(ctx, in.Profile, in.Subscription)
+		if err != nil {
+			return toolError(err), mqadmin.SubscriptionDetail{}, nil
 		}
 		return &mcp.CallToolResult{}, detail, nil
 	})
