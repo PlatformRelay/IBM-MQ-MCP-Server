@@ -1,6 +1,7 @@
 package mqweb
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -95,6 +96,62 @@ func (c *messagingClient) BrowseMessages(
 	return page, nil
 }
 
+func (c *messagingClient) PutMessage(
+	ctx context.Context,
+	queueName string,
+	req messaging.PutRequest,
+) (messaging.PutResult, error) {
+	body, contentType, err := messaging.PreparePutPayload(req.ContentType, req.Payload)
+	if err != nil {
+		return messaging.PutResult{}, err
+	}
+	path := fmt.Sprintf(
+		"/ibmmq/rest/%s/messaging/qmgr/%s/queue/%s/message",
+		messagingAPIVersion,
+		url.PathEscape(c.queueManager),
+		url.PathEscape(queueName),
+	)
+	headers := map[string]string{
+		"Content-Type": mqwebPutContentType(contentType),
+	}
+	if correlationID := strings.TrimSpace(req.CorrelationID); correlationID != "" {
+		headers["ibm-mq-md-correlationId"] = correlationID
+	}
+	respHeaders, code, respBody, err := c.base.post(ctx, path, body, headers)
+	if err != nil {
+		return messaging.PutResult{}, err
+	}
+	switch code {
+	case http.StatusOK, http.StatusCreated, http.StatusNoContent:
+	default:
+		return messaging.PutResult{}, mapHTTPError(code, respBody)
+	}
+	result := messaging.PutResult{
+		MessageID:     strings.TrimSpace(respHeaders.Get("ibm-mq-md-messageid")),
+		CorrelationID: strings.TrimSpace(req.CorrelationID),
+	}
+	switch contentType {
+	case messaging.ContentTypeJSON, messaging.ContentTypeTextPlain:
+		result.Format = "MQSTR"
+	case messaging.ContentTypeOctetStream:
+		result.Format = "MQBYTE"
+	default:
+		result.Format = "MQSTR"
+	}
+	return result, nil
+}
+
+func mqwebPutContentType(contentType string) string {
+	switch contentType {
+	case messaging.ContentTypeJSON:
+		return "application/json;charset=utf-8"
+	case messaging.ContentTypeOctetStream:
+		return "application/octet-stream"
+	default:
+		return "text/plain;charset=utf-8"
+	}
+}
+
 func (c *messagingClient) messageListPath(queueName string, count, waitMs int) string {
 	path := fmt.Sprintf(
 		"/ibmmq/rest/%s/messaging/qmgr/%s/queue/%s/messagelist",
@@ -184,6 +241,41 @@ func mapHTTPError(code int, body []byte) error {
 		return mqadmin.MapReasonCode(reason)
 	}
 	return fmt.Errorf("mqweb messaging request failed with status %d", code)
+}
+
+func (b *baseClient) post(
+	ctx context.Context,
+	path string,
+	body []byte,
+	extraHeaders map[string]string,
+) (http.Header, int, []byte, error) {
+	if b.closed {
+		return nil, 0, nil, errors.New("mqweb client closed")
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, b.endpoint+path, bytes.NewReader(body))
+	if err != nil {
+		return nil, 0, nil, err
+	}
+	req.Header.Set("ibm-mq-rest-csrf-token", "1")
+	for key, value := range extraHeaders {
+		req.Header.Set(key, value)
+	}
+	if b.authType == catalog.AuthBasic && b.username != "" {
+		req.SetBasicAuth(b.username, b.password)
+	}
+	resp, err := b.httpClient.Do(req)
+	if err != nil {
+		return nil, 0, nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return resp.Header, resp.StatusCode, nil, err
+	}
+	if reason := parseReasonCode(respBody); reason != 0 && resp.StatusCode >= 400 {
+		return resp.Header, resp.StatusCode, respBody, mqadmin.MapReasonCode(reason)
+	}
+	return resp.Header, resp.StatusCode, respBody, nil
 }
 
 func (b *baseClient) request(ctx context.Context, method, path, accept string) ([]byte, int, error) {

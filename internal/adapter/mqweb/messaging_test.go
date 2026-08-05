@@ -2,6 +2,8 @@ package mqweb_test
 
 import (
 	"context"
+	"encoding/base64"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -85,8 +87,77 @@ func TestBrowseMessagesMetadataOnlyOmitsPayload(t *testing.T) {
 	}
 }
 
+func TestPutMessageUsesPOSTWithCSRFAndContentType(t *testing.T) {
+	var method, contentType, csrf string
+	var body []byte
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		method = r.Method
+		contentType = r.Header.Get("Content-Type")
+		csrf = r.Header.Get("ibm-mq-rest-csrf-token")
+		body, _ = io.ReadAll(r.Body)
+		w.Header().Set("ibm-mq-md-messageId", "ID:put1")
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(server.Close)
+
+	client := newTestMessagingClientWithCaps(t, server.URL, []string{"produce"})
+	result, err := client.PutMessage(context.Background(), "Q1", messaging.PutRequest{
+		ContentType: messaging.ContentTypeTextPlain,
+		Payload:     "hello",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if method != http.MethodPost {
+		t.Fatalf("method = %q", method)
+	}
+	if csrf == "" {
+		t.Fatal("expected csrf header")
+	}
+	if contentType != "text/plain;charset=utf-8" {
+		t.Fatalf("contentType = %q", contentType)
+	}
+	if string(body) != "hello" {
+		t.Fatalf("body = %q", body)
+	}
+	if result.MessageID != "ID:put1" {
+		t.Fatalf("messageId = %q", result.MessageID)
+	}
+}
+
+func TestPutMessageOctetStreamDecodesBase64BeforePOST(t *testing.T) {
+	var body []byte
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ = io.ReadAll(r.Body)
+		w.Header().Set("ibm-mq-md-messageId", "ID:bin")
+	}))
+	t.Cleanup(server.Close)
+
+	raw := []byte{0x01, 0x02, 0x03}
+	client := newTestMessagingClientWithCaps(t, server.URL, []string{"produce"})
+	_, err := client.PutMessage(context.Background(), "Q1", messaging.PutRequest{
+		ContentType: messaging.ContentTypeOctetStream,
+		Payload:     base64.StdEncoding.EncodeToString(raw),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(body) != string(raw) {
+		t.Fatalf("body = %v want %v", body, raw)
+	}
+}
+
 func newTestMessagingClient(t *testing.T, endpoint string) messaging.Client {
 	t.Helper()
+	return newTestMessagingClientWithCaps(t, endpoint, []string{"browse"})
+}
+
+func newTestMessagingClientWithCaps(t *testing.T, endpoint string, caps []string) messaging.Client {
+	t.Helper()
+	capsYAML := ""
+	for _, cap := range caps {
+		capsYAML += "      - " + cap + "\n"
+	}
 	cat, err := catalog.LoadYAML([]byte(`
 profiles:
   prod:
@@ -98,8 +169,7 @@ profiles:
     tls:
       insecureSkipVerify: true
     capabilities:
-      - browse
-`))
+` + capsYAML))
 	if err != nil {
 		t.Fatal(err)
 	}
