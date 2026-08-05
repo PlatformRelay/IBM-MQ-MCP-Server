@@ -7,7 +7,7 @@ cd "${ROOT}"
 
 COVERAGE_MIN="${COVERAGE_MIN:-50}"
 COVERPROFILE="${COVERPROFILE:-coverage.out}"
-PACKAGES="${COVER_PACKAGES:-./internal/mcpserver/... ./internal/observability/... ./internal/adapter/opshttp/... ./cmd/ibm-mq-mcp/...}"
+PACKAGES="${COVER_PACKAGES:-./internal/mcpserver/... ./internal/observability/... ./internal/adapter/opshttp/... ./internal/adapter/remotemcp/... ./cmd/ibm-mq-mcp/...}"
 
 CGO_ENABLED="${CGO_ENABLED:-0}" go test ${RACE_FLAGS:-} ${PACKAGES} \
   -count=1 \

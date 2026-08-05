@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/adapter/remotemcp"
 )
 
 func TestResolveConfigPathPrefersFlag(t *testing.T) {
@@ -17,6 +19,30 @@ func TestResolveConfigPathFromEnv(t *testing.T) {
 	t.Setenv("IBM_MQ_MCP_CONFIG", "/env/config.yaml")
 	if got := resolveConfigPath(""); got != "/env/config.yaml" {
 		t.Fatalf("resolveConfigPath = %q", got)
+	}
+}
+
+func TestResolveRemoteConfigRequiresAuthWhenAddrSet(t *testing.T) {
+	_, err := resolveRemoteConfig(":8080", "")
+	if err == nil {
+		t.Fatal("expected error when remote addr without auth ref")
+	}
+}
+
+func TestResolveRemoteConfigFromEnv(t *testing.T) {
+	t.Setenv(remotemcp.EnvRemoteAddr, ":8080")
+	t.Setenv(remotemcp.EnvRemoteAuthTokenRef, "env:IBM_MQ_MCP_REMOTE_TOKEN")
+	t.Setenv("IBM_MQ_MCP_REMOTE_TOKEN", "gate-token")
+
+	cfg, err := resolveRemoteConfig("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Addr != ":8080" {
+		t.Fatalf("Addr = %q", cfg.Addr)
+	}
+	if cfg.AuthTokenRef != "env:IBM_MQ_MCP_REMOTE_TOKEN" {
+		t.Fatalf("AuthTokenRef = %q", cfg.AuthTokenRef)
 	}
 }
 
