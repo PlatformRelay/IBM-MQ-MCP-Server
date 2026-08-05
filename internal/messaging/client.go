@@ -1,10 +1,15 @@
 package messaging
 
-import "context"
+import (
+	"context"
+
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/collection"
+)
 
 // Client is the typed messaging port for one profile (ADR-0002).
 type Client interface {
 	ProfileName() string
 	Ping(ctx context.Context) error
+	BrowseMessages(ctx context.Context, queueName string, req BrowseRequest) (collection.Page[MessageRecord], error)
 	Close() error
 }

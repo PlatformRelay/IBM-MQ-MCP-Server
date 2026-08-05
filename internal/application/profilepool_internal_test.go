@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"fmt"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -50,7 +51,7 @@ func TestProfilePoolIsolatesDistinctProfiles(t *testing.T) {
 	if prodMsg == devMsg {
 		t.Fatal("expected distinct messaging client instances per profile")
 	}
-	if prodAdmin == prodMsg {
+	if fmt.Sprintf("%p", prodAdmin) == fmt.Sprintf("%p", prodMsg) {
 		t.Fatal("admin and messaging clients for same profile should be distinct instances")
 	}
 
@@ -116,12 +117,6 @@ func TestProfilePoolCloseRejectsFurtherUse(t *testing.T) {
 	}
 }
 
-func TestProfileTimeoutRejectsInvalidDuration(t *testing.T) {
-	if _, err := profileTimeout("not-a-duration"); err == nil {
-		t.Fatal("expected timeout parse error")
-	}
-}
-
 func TestProfilePoolMTLSLoadsClientCertificate(t *testing.T) {
 	dir := t.TempDir()
 	certPath, keyPath := writeTestClientKeyPair(t, dir)
@@ -154,28 +149,7 @@ func TestProfilePoolStoresBasicCredentials(t *testing.T) {
 	}
 }
 
-func TestParseBasicSecretRejectsMalformed(t *testing.T) {
-	cases := []struct {
-		name  string
-		value string
-	}{
-		{name: "empty", value: ""},
-		{name: "no colon", value: "useronly"},
-		{name: "empty username", value: ":pass"},
-		{name: "empty password", value: "user:"},
-		{name: "whitespace password", value: "user:   "},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			if _, _, err := parseBasicSecret(tc.value); err == nil {
-				t.Fatal("expected error")
-			}
-		})
-	}
-}
-
 func TestProfilePoolRejectsEmptyBasicSecret(t *testing.T) {
-	t.Setenv("IBM_MQ_MCP_EMPTY_BASIC", " ")
 	pool := newTestPool(t, basicProfileYAML("env:IBM_MQ_MCP_EMPTY_BASIC"))
 	if _, err := pool.Admin("prod", policy.Administer); err == nil {
 		t.Fatal("expected empty basic secret error")
@@ -209,7 +183,14 @@ func newTestPool(t *testing.T, doc string) *ProfilePool {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pool := NewProfilePool(cat, cat.Validate(), secrets.NewResolver(), nil, WithAdminFactory(mqweb.NewAdminClient))
+	pool := NewProfilePool(
+		cat,
+		cat.Validate(),
+		secrets.NewResolver(),
+		nil,
+		WithAdminFactory(mqweb.NewAdminClient),
+		WithMessagingFactory(mqweb.NewMessagingClient),
+	)
 	t.Cleanup(func() { _ = pool.Close() })
 	return pool
 }

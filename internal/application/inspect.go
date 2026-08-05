@@ -8,12 +8,16 @@ import (
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/collection"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/config/catalog"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/config/secrets"
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/messaging"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/mqadmin"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/policy"
 )
 
 // AdminClientFactory constructs mqadmin clients after policy grants secrets resolution.
 type AdminClientFactory func(profile catalog.Profile, resolver *secrets.Resolver) (mqadmin.Client, error)
+
+// MessagingClientFactory constructs messaging clients after policy grants secrets resolution.
+type MessagingClientFactory func(profile catalog.Profile, resolver *secrets.Resolver) (messaging.Client, error)
 
 // ProfileSummary is safe profile metadata for discovery tools (no secrets).
 type ProfileSummary struct {
@@ -32,6 +36,11 @@ type Inspector struct {
 // NewInspector constructs an inspector over a profile pool.
 func NewInspector(pool *ProfilePool) *Inspector {
 	return &Inspector{pool: pool}
+}
+
+// Pool returns the underlying profile pool (MCP wiring).
+func (i *Inspector) Pool() *ProfilePool {
+	return i.pool
 }
 
 // ListProfiles returns configured identity and capabilities without secret resolution.
