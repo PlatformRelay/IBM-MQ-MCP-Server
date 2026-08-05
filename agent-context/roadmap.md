@@ -134,5 +134,5 @@ through EPIC-002..008.
 [Story](stories/INT-001.md)
 
 ### DOC-001 — Deliver documentation and operator experience
-⬜ Next · MkDocs, examples, runbooks, threat model, version matrix.
+✅ Done · Integrated to `main` @ 9efa2f9.
 [Story](stories/DOC-001.md)

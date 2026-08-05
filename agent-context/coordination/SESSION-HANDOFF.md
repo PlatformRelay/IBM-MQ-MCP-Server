@@ -5,10 +5,10 @@
 
 ## State
 
-- **main tip:** `7f1c256` (`:bug: fix(obs): set HTTP timeouts on ops listener`)
-- OBS-001 integrated — ops HTTP (`/healthz`, `/readyz`, `/metrics`), Prometheus metrics, redacted structured logs, `--ops-addr` opt-in.
-- FND-003 @ 1fe36f8; FND-002 @ 99eaa5d; FND-001 @ 5edb34c.
-- Remote `lane/obs-001` deleted after ff-merge.
+- **main tip:** (see latest commit after integrate bookkeeping)
+- DOC-001 integrated — MkDocs operator docs, examples, threat model, version matrix (provisional rows), `docs_test.go`; ff-merge @ `9efa2f9`.
+- OBS-001 integrated @ `7f1c256`; FND-003 @ `1fe36f8`; FND-002 @ `99eaa5d`; FND-001 @ `5edb34c`.
+- Remote `lane/doc-001` deleted after ff-merge.
 
 ## Before first tag
 
@@ -16,8 +16,7 @@ Create the GitHub **Environment** named `release` (repo Settings → Environment
 
 ## Next
 
-1. **DOC-001** — docs and operator UX.
-2. **CON-*/POL-*** — still ADR-blocked (ADR-0003+); do not start until decided.
+Backlog is **largely ADR-blocked** — decide or draft ADR-0003 (capabilities), ADR-0004 (secrets), ADR-0006 (remote MCP), ADR-0007/0008 before CON/POL/MSG/ADM/SEC/INT lanes. Optional **FND-004** remains parked (licensing + live MQ spike).
 
 ## Do not
 
