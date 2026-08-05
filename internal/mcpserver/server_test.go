@@ -7,6 +7,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/mcpserver"
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/observability/runtime"
 )
 
 func TestNewServerHasNoTools(t *testing.T) {
@@ -46,4 +47,28 @@ func TestServerImplementationIdentity(t *testing.T) {
 	if server == nil {
 		t.Fatal("New returned nil")
 	}
+}
+
+func TestTrackTransportUpdatesRuntimeState(t *testing.T) {
+	t.Parallel()
+
+	rt := runtime.New()
+	rt.SetConfigValid(true)
+
+	stop := mcpserver.TrackTransport(rt, "stdio")
+	if !rt.Ready() {
+		t.Fatal("expected ready while transport tracked")
+	}
+
+	stop()
+	if rt.Ready() {
+		t.Fatal("expected not ready after transport stopped")
+	}
+}
+
+func TestTrackTransportNilRuntimeSafe(t *testing.T) {
+	t.Parallel()
+
+	stop := mcpserver.TrackTransport(nil, "stdio")
+	stop()
 }

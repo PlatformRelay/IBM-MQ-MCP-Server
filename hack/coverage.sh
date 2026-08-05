@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Coverage floor for packages that currently have statements under test.
-# Default scope: internal/mcpserver (the only non-stub production package today).
+# Default scope: packages with production observability and MCP wiring under test.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT}"
 
 COVERAGE_MIN="${COVERAGE_MIN:-50}"
 COVERPROFILE="${COVERPROFILE:-coverage.out}"
-PACKAGES="${COVER_PACKAGES:-./internal/mcpserver/...}"
+PACKAGES="${COVER_PACKAGES:-./internal/mcpserver/... ./internal/observability/... ./internal/adapter/opshttp/... ./cmd/ibm-mq-mcp/...}"
 
 CGO_ENABLED="${CGO_ENABLED:-0}" go test ${RACE_FLAGS:-} ${PACKAGES} \
   -count=1 \
