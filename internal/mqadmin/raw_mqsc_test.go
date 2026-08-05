@@ -58,6 +58,22 @@ func TestValidateRawMQSCRejectsEmptyAndMultiCommand(t *testing.T) {
 	}
 }
 
+func TestValidateRawMQSCRejectsNewlineStatementInjection(t *testing.T) {
+	t.Parallel()
+	cases := []string{
+		"DISPLAY QLOCAL('X')\nALTER QLOCAL('X') MAXDEPTH(1000)",
+		"DISPLAY QLOCAL('X')\r\nALTER QLOCAL('X') MAXDEPTH(1000)",
+		"DISPLAY QLOCAL('X')\rALTER QLOCAL('X') MAXDEPTH(1000)",
+		"  DISPLAY QLOCAL('X') \n\tALTER QLOCAL('X') MAXDEPTH(1000)",
+	}
+	for _, cmd := range cases {
+		err := mqadmin.ValidateRawMQSCCommand(cmd)
+		if !errors.Is(err, mqadmin.ErrMQSCMultipleCommands) {
+			t.Fatalf("ValidateRawMQSCCommand(%q) = %v, want ErrMQSCMultipleCommands", cmd, err)
+		}
+	}
+}
+
 func TestRedactMQSCCommandText(t *testing.T) {
 	t.Parallel()
 	in := "DISPLAY QLOCAL('DEV') WHERE password=secret-value"

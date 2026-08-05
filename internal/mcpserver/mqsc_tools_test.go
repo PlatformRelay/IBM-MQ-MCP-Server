@@ -2,6 +2,7 @@ package mcpserver_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -134,6 +135,51 @@ func TestExecuteMQSCDeniedVerbNeverHitsAdapter(t *testing.T) {
 	}
 }
 
+func TestExecuteMQSCCallToolFailsWithoutServerOptIn(t *testing.T) {
+	t.Cleanup(mcpserver.ResetRegisteredTools)
+	pool := mqscToolPool(t, fake.New("prod"))
+	server := mcpserver.NewWithInspector(application.NewInspector(pool))
+	session := connectInspectClient(t, server)
+	t.Cleanup(func() { _ = session.Close() })
+
+	_, err := session.CallTool(context.Background(), &mcp.CallToolParams{
+		Name: toolExecuteMQSC,
+		Arguments: map[string]any{
+			"profile": "prod",
+			"command": "DISPLAY QLOCAL('DEV.QUEUE.1')",
+		},
+	})
+	if err == nil {
+		t.Fatal("expected CallTool error when execute_mqsc is not registered")
+	}
+}
+
+func TestExecuteMQSCNewlineInjectionNeverHitsAdapter(t *testing.T) {
+	t.Cleanup(mcpserver.ResetRegisteredTools)
+	fakeClient := fake.New("prod")
+	pool := mqscToolPool(t, fakeClient)
+	server := mcpserver.NewWithInspector(application.NewInspector(pool), mcpserver.WithEnableMQSC(true))
+	session := connectInspectClient(t, server)
+	t.Cleanup(func() { _ = session.Close() })
+
+	res, err := session.CallTool(context.Background(), &mcp.CallToolParams{
+		Name: toolExecuteMQSC,
+		Arguments: map[string]any{
+			"profile": "prod",
+			"command": "DISPLAY QLOCAL('X')\nALTER QLOCAL('X') MAXDEPTH(1000)",
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !res.IsError {
+		t.Fatal("expected tool error for newline statement injection")
+	}
+	if fakeClient.ExecuteRawMQSCCalls != 0 {
+		t.Fatalf("adapter invoked on newline injection: %d", fakeClient.ExecuteRawMQSCCalls)
+	}
+}
+
 func TestExecuteMQSCReturnsStructuredContent(t *testing.T) {
 	t.Cleanup(mcpserver.ResetRegisteredTools)
 	fakeClient := fake.New("prod")
@@ -173,6 +219,50 @@ func TestExecuteMQSCReturnsStructuredContent(t *testing.T) {
 	}
 	if payload["profile"] != "prod" {
 		t.Fatalf("profile = %#v", payload["profile"])
+	}
+}
+
+func TestExecuteMQSCRedactsCommandInStructuredContent(t *testing.T) {
+	t.Cleanup(mcpserver.ResetRegisteredTools)
+	fakeClient := fake.New("prod")
+	fakeClient.ExecuteRawMQSCResult = mqadmin.RawMQSCResult{
+		Completion: mqadmin.MQSCCompletion{
+			OverallCompletionCode: 0,
+			OverallReasonCode:     0,
+		},
+	}
+	pool := mqscToolPool(t, fakeClient)
+	server := mcpserver.NewWithInspector(application.NewInspector(pool), mcpserver.WithEnableMQSC(true))
+	session := connectInspectClient(t, server)
+	t.Cleanup(func() { _ = session.Close() })
+
+	const secret = "super-secret-value"
+	res, err := session.CallTool(context.Background(), &mcp.CallToolParams{
+		Name: toolExecuteMQSC,
+		Arguments: map[string]any{
+			"profile": "prod",
+			"command": "DISPLAY QLOCAL('DEV') WHERE password=" + secret,
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.IsError {
+		t.Fatalf("tool error: %+v", res.Content)
+	}
+	payload, ok := res.StructuredContent.(map[string]any)
+	if !ok {
+		t.Fatalf("structuredContent type = %T", res.StructuredContent)
+	}
+	cmd, ok := payload["command"].(string)
+	if !ok {
+		t.Fatalf("command = %#v", payload["command"])
+	}
+	if strings.Contains(cmd, secret) {
+		t.Fatalf("structuredContent command leaked secret: %q", cmd)
+	}
+	if !strings.Contains(cmd, "[REDACTED]") {
+		t.Fatalf("structuredContent command = %q, want redacted placeholder", cmd)
 	}
 }
 

@@ -45,6 +45,9 @@ func ValidateRawMQSCCommand(command string) error {
 	if trimmed == "" {
 		return ErrMQSCCommandEmpty
 	}
+	if containsStatementSeparator(trimmed) {
+		return ErrMQSCMultipleCommands
+	}
 	if strings.Contains(trimmed, ";") {
 		return ErrMQSCMultipleCommands
 	}
@@ -69,4 +72,8 @@ func parseMQSCVerb(command string) (string, error) {
 		return "", ErrMQSCCommandEmpty
 	}
 	return fields[0], nil
+}
+
+func containsStatementSeparator(command string) bool {
+	return strings.ContainsAny(command, "\r\n")
 }

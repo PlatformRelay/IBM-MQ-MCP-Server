@@ -40,7 +40,7 @@ func (e *MQSCExecutor) ExecuteRawMQSC(
 	}
 	result.Profile = profileName
 	result.QueueManager = profile.QueueManager
-	result.Command = command
+	result.Command = mqadmin.RedactMQSCCommandText(command)
 	result.CompletedAt = time.Now().UTC()
 	return result, nil
 }
