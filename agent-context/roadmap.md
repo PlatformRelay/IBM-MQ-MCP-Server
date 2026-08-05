@@ -37,15 +37,15 @@ through EPIC-002..008.
 [Change](../openspec/changes/connection-profiles-and-policy/proposal.md)
 
 ### CON-001 — Resolve multiple secure MQ connection profiles
-✅ Done · lane/con-001 — profile catalog, env/file secrets, TLS, client pool stubs.
+✅ Done · Integrated to `main` @ 6fd2fa5 — profile catalog, env/file secrets, TLS, client pool.
 [Story](stories/CON-001.md)
 
 ### CON-002 — Additional secret providers
-🛑 Blocked · Requires CON-001.
+🔄 In flight · lane/con-002 — Kubernetes `k8s:` secret references.
 [Story](stories/CON-002.md)
 
 ### POL-001 — Enforce per-profile capabilities
-⬜ Open · ADR-0003 Accepted; ADR-0004 Accepted for secret providers.
+✅ Done · Integrated to `main` @ cb6cb5f.
 [Story](stories/POL-001.md)
 
 ### POL-002 — Object-name allow/deny constraints
@@ -59,19 +59,19 @@ after POL-001.
 [Change](../openspec/changes/typed-inspection-and-output/proposal.md)
 
 ### INS-001 — Inspect profiles, queue managers, and queues
-⬜ Open · Intent approved shape; technical plan needs CON-001 and POL-001.
+✅ Done · Integrated to `main` @ d5688bd.
 [Story](stories/INS-001.md)
 
 ### INS-002 — Inspect channels, listeners, and subscriptions
-⬜ Open · Starts after INS-001 fixes the collection contract.
+✅ Done · Integrated to `main` @ 1948838.
 [Story](stories/INS-002.md)
 
 ### INS-003 — Reason-code and connectivity diagnostics
-✅ Done · Offline explain + connectivity check tools.
+✅ Done · Offline explain + connectivity check tools @ ce1691e.
 [Story](stories/INS-003.md)
 
 ### OUT-001 — Produce token-conscious structured results
-⬜ Open · Benchmarks need INS-001 schemas; feeds ADR-0005.
+✅ Done · Integrated to `main` @ 34bf044.
 [Story](stories/OUT-001.md)
 
 ## EPIC-005 — Safe messaging
@@ -80,15 +80,15 @@ after POL-001.
 [Change](../openspec/changes/safe-messaging/proposal.md)
 
 ### MSG-001 — Prove mqweb message semantics and ship bounded browse
-⬜ Open · FND-004 harness ready; still requires design questions 14–16.
+✅ Done · Integrated to `main` @ 06b02a2.
 [Story](stories/MSG-001.md)
 
 ### MSG-002 — Validated message production
-⬜ Open · lane/msg-002 — named content types, size limits, `put_queue_message`.
+✅ Done · Integrated to `main` @ 18dc5a8.
 [Story](stories/MSG-002.md)
 
 ### MSG-003 — Separately gated destructive consume
-⬜ Open · lane/msg-003 — `consume_queue_messages`, mqweb DELETE, separate capability.
+✅ Done · Integrated to `main` @ 1d3000b.
 [Story](stories/MSG-003.md)
 
 ## EPIC-006 — Guarded administration
@@ -97,16 +97,15 @@ after POL-001.
 [Change](../openspec/changes/guarded-administration/proposal.md)
 
 ### ADM-001 — Typed queue administration
-🛑 Blocked · ADR-0003 Accepted (`administer` distinct from `produce`); still
-requires ADR-0007.
+✅ Done · Integrated to `main` @ 1cd331d.
 [Story](stories/ADM-001.md)
 
 ### ADM-002 — Administer channels, channel authentication, authority records
-🛑 Blocked · Requires ADM-001.
+✅ Done · Integrated to `main` @ 9df96c3.
 [Story](stories/ADM-002.md)
 
 ### ADM-003 — Raw MQSC exceptional gate
-✅ Done · ADR-0008 accepted; lane/adm-003.
+✅ Done · ADR-0008 accepted; lane/adm-003 @ e443ef9.
 [Story](stories/ADM-003.md)
 
 ## EPIC-007 — Remote access, audit, and operability
@@ -119,7 +118,7 @@ requires ADR-0007.
 [Story](stories/SEC-001.md)
 
 ### SEC-002 — Payload-safe audit trail
-✅ Done · lane/sec-002.
+✅ Done · lane/sec-002 @ 1e871ea.
 [Story](stories/SEC-002.md)
 
 ### OBS-001 — Health, readiness, metrics, and structured logs
@@ -132,7 +131,7 @@ requires ADR-0007.
 [Change](../openspec/changes/mkurator-coexistence/proposal.md)
 
 ### INT-001 — Coexist with MKurator
-🛑 Blocked · Requires ADR-0007 ownership and mutation decisions.
+✅ Done · Integrated to `main` @ 36db0c1.
 [Story](stories/INT-001.md)
 
 ### DOC-001 — Deliver documentation and operator experience

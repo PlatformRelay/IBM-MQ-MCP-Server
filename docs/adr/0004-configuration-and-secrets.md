@@ -17,19 +17,26 @@ secrets at process start.
 
 ## Decision
 
-### Secret providers (first release)
+### Secret providers (first release and CON-002)
 
-Support **environment variables** and **mounted files** only in CON-001:
+Support **environment variables**, **mounted files** (CON-001), and **Kubernetes
+Secrets** (CON-002):
 
 | Reference prefix | Example | Resolution |
 | --- | --- | --- |
 | `env:` | `env:MQ_PROD_PASSWORD` | Value of the named environment variable |
 | `file:` | `file:/run/secrets/mq/password` | Contents of the mounted file (trimmed trailing newline) |
+| `k8s:` | `k8s:mq-system/mq-credentials#password` | Data key from the named Secret in the namespace |
 
 - **No inline secrets** in configuration values that may be logged, returned in
   tool results, or echoed in errors.
-- Kubernetes Secrets, HashiCorp Vault, and other external providers are deferred
-  to CON-002.
+- HashiCorp Vault and other external providers remain deferred; unknown reference
+  schemes fail catalog validation at startup.
+
+**Kubernetes optional at runtime:** env/file profiles work without in-cluster
+config or kubeconfig. A `k8s:` reference fails at lazy resolution time with a
+typed, non-secret error when the provider is unavailable or the Secret/key is
+missing; other profiles are unaffected.
 
 ### Downstream mqweb authentication (first release)
 
@@ -70,7 +77,7 @@ per-profile client pool; HTTP to mqweb stays behind the adapter layer (ADR-0002)
 
 ### Positive
 
-- CON-001 can ship without Kubernetes or Vault SDK dependencies.
+- CON-001 can ship without Vault SDK dependencies; K8s client-go added in CON-002.
 - Env and file refs match common container and local-dev patterns.
 - Lazy resolution avoids requiring every profile's secrets at pod start.
 - Fail-open startup keeps multi-profile servers usable when one credential
@@ -97,8 +104,9 @@ per-profile client pool; HTTP to mqweb stays behind the adapter layer (ADR-0002)
 
 ### Kubernetes Secrets and Vault in the first release
 
-Rejected because it expands provider scope, test matrix, and delivery dependencies
-before the catalog and mqweb adapter contract are proven.
+Rejected for CON-001 because it expanded provider scope before the catalog
+contract was proven. **CON-002** adds Kubernetes Secrets via the `k8s:` scheme;
+Vault remains deferred.
 
 ### Strict startup only (no fail-open)
 

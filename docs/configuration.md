@@ -61,19 +61,21 @@ See [Examples](examples/README.md) for additional illustrative profiles.
 ## Secret references
 
 Production credentials must **not** appear inline in configuration. Supported
-reference schemes in v0 ([ADR-0004](adr/0004-configuration-and-secrets.md)):
+reference schemes ([ADR-0004](adr/0004-configuration-and-secrets.md)):
 
 | Prefix | Example | Resolves to |
 | --- | --- | --- |
 | `env:` | `env:MQ_PROD_PASSWORD` | Environment variable value |
 | `file:` | `file:/run/secrets/mq/password` | Mounted file contents (trimmed) |
+| `k8s:` | `k8s:mq-system/mq-credentials#password` | Kubernetes Secret data key |
 
 - **HTTP Basic:** `secretRef` resolves to `username:password` (single value).
 - **mTLS:** `certificateRef` and `privateKeyRef` are file refs; optional
   `passphraseRef` for encrypted private keys.
 - Secret **values** are resolved lazily when a profile is first used, not at
   catalog parse time.
-- Kubernetes Secrets and Vault integrations are [CON-002](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/agent-context/stories/CON-002.md).
+- Unknown schemes (for example `vault:`) fail catalog validation at startup.
+- Vault integration remains deferred to a future slice.
 
 ## TLS
 
