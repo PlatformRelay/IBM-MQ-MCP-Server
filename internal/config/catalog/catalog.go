@@ -165,7 +165,40 @@ func validateProfile(p Profile) error {
 	if err := validateAuthentication(p.Authentication); err != nil {
 		return err
 	}
+	if err := validateCapabilities(p.Capabilities); err != nil {
+		return err
+	}
 	return p.TLS.Validate()
+}
+
+func validateCapabilities(caps []string) error {
+	if len(caps) == 0 {
+		return errors.New("capabilities must list at least one grant")
+	}
+	seen := make(map[string]struct{}, len(caps))
+	for _, raw := range caps {
+		name := strings.TrimSpace(raw)
+		if name == "" {
+			return errors.New("capability name must not be empty")
+		}
+		if !isKnownCapability(name) {
+			return fmt.Errorf("unknown capability %q", name)
+		}
+		if _, dup := seen[name]; dup {
+			return fmt.Errorf("duplicate capability %q", name)
+		}
+		seen[name] = struct{}{}
+	}
+	return nil
+}
+
+func isKnownCapability(name string) bool {
+	switch name {
+	case "inspect", "browse", "consume", "produce", "administer", "execute_mqsc":
+		return true
+	default:
+		return false
+	}
 }
 
 func validateAuthentication(auth Authentication) error {

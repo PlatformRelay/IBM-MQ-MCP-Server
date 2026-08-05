@@ -16,6 +16,7 @@ import (
 
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/config/catalog"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/config/secrets"
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/policy"
 )
 
 func TestProfilePoolIsolatesDistinctProfiles(t *testing.T) {
@@ -23,11 +24,11 @@ func TestProfilePoolIsolatesDistinctProfiles(t *testing.T) {
 	t.Setenv("IBM_MQ_MCP_DEV_SECRET", "dev-user:dev-pass")
 	pool := newTestPool(t, twoProfileYAML())
 
-	prodAdmin, err := pool.Admin("prod")
+	prodAdmin, err := pool.Admin("prod", policy.Administer)
 	if err != nil {
 		t.Fatal(err)
 	}
-	devAdmin, err := pool.Admin("dev")
+	devAdmin, err := pool.Admin("dev", policy.Administer)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,11 +51,11 @@ func TestProfilePoolIsolatesDistinctProfiles(t *testing.T) {
 			prodAC.username, prodAC.password, devAC.username, devAC.password)
 	}
 
-	prodMsg, err := pool.Messaging("prod")
+	prodMsg, err := pool.Messaging("prod", policy.Produce)
 	if err != nil {
 		t.Fatal(err)
 	}
-	devMsg, err := pool.Messaging("dev")
+	devMsg, err := pool.Messaging("dev", policy.Produce)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,10 +69,10 @@ func TestProfilePoolIsolatesDistinctProfiles(t *testing.T) {
 	if err := pool.Close(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := pool.Admin("prod"); err == nil {
+	if _, err := pool.Admin("prod", policy.Administer); err == nil {
 		t.Fatal("expected prod admin error after pool close")
 	}
-	if _, err := pool.Admin("dev"); err == nil {
+	if _, err := pool.Admin("dev", policy.Administer); err == nil {
 		t.Fatal("expected dev admin error after pool close")
 	}
 }
@@ -80,11 +81,11 @@ func TestProfilePoolReusesAdminClient(t *testing.T) {
 	t.Setenv("IBM_MQ_MCP_POOL_SECRET", "user:pass")
 	pool := newTestPool(t, basicProfileYAML("env:IBM_MQ_MCP_POOL_SECRET", ""))
 
-	first, err := pool.Admin("prod")
+	first, err := pool.Admin("prod", policy.Administer)
 	if err != nil {
 		t.Fatal(err)
 	}
-	second, err := pool.Admin("prod")
+	second, err := pool.Admin("prod", policy.Administer)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,11 +98,11 @@ func TestProfilePoolReusesMessagingClient(t *testing.T) {
 	t.Setenv("IBM_MQ_MCP_POOL_SECRET", "user:pass")
 	pool := newTestPool(t, basicProfileYAML("env:IBM_MQ_MCP_POOL_SECRET", ""))
 
-	first, err := pool.Messaging("prod")
+	first, err := pool.Messaging("prod", policy.Produce)
 	if err != nil {
 		t.Fatal(err)
 	}
-	second, err := pool.Messaging("prod")
+	second, err := pool.Messaging("prod", policy.Produce)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,13 +115,13 @@ func TestProfilePoolCloseRejectsFurtherUse(t *testing.T) {
 	t.Setenv("IBM_MQ_MCP_POOL_SECRET", "user:pass")
 	pool := newTestPool(t, basicProfileYAML("env:IBM_MQ_MCP_POOL_SECRET", ""))
 
-	if _, err := pool.Admin("prod"); err != nil {
+	if _, err := pool.Admin("prod", policy.Administer); err != nil {
 		t.Fatal(err)
 	}
 	if err := pool.Close(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := pool.Admin("prod"); err == nil {
+	if _, err := pool.Admin("prod", policy.Administer); err == nil {
 		t.Fatal("expected error after pool close")
 	} else if !strings.Contains(err.Error(), "closed") {
 		t.Fatalf("unexpected error: %v", err)
@@ -131,7 +132,7 @@ func TestProfilePoolAppliesTimeout(t *testing.T) {
 	t.Setenv("IBM_MQ_MCP_POOL_SECRET", "user:pass")
 	pool := newTestPool(t, basicProfileYAML("env:IBM_MQ_MCP_POOL_SECRET", "45s"))
 
-	client, err := pool.Admin("prod")
+	client, err := pool.Admin("prod", policy.Administer)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -164,9 +165,12 @@ profiles:
       privateKeyRef: file:` + keyPath + `
     tls:
       insecureSkipVerify: true
+    capabilities:
+      - administer
+      - produce
 `
 	pool := newTestPool(t, doc)
-	client, err := pool.Admin("mtls")
+	client, err := pool.Admin("mtls", policy.Administer)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -187,7 +191,7 @@ func TestProfilePoolStoresBasicCredentials(t *testing.T) {
 	t.Setenv("IBM_MQ_MCP_POOL_SECRET", "alice:secret")
 	pool := newTestPool(t, basicProfileYAML("env:IBM_MQ_MCP_POOL_SECRET", ""))
 
-	client, err := pool.Admin("prod")
+	client, err := pool.Admin("prod", policy.Administer)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -223,7 +227,7 @@ func TestParseBasicSecretRejectsMalformed(t *testing.T) {
 func TestProfilePoolRejectsEmptyBasicSecret(t *testing.T) {
 	t.Setenv("IBM_MQ_MCP_EMPTY_BASIC", " ")
 	pool := newTestPool(t, basicProfileYAML("env:IBM_MQ_MCP_EMPTY_BASIC", ""))
-	if _, err := pool.Admin("prod"); err == nil {
+	if _, err := pool.Admin("prod", policy.Administer); err == nil {
 		t.Fatal("expected empty basic secret error")
 	}
 }
@@ -231,7 +235,7 @@ func TestProfilePoolRejectsEmptyBasicSecret(t *testing.T) {
 func TestProfilePoolRejectsMalformedBasicSecret(t *testing.T) {
 	t.Setenv("IBM_MQ_MCP_BAD_BASIC", "not-valid-format")
 	pool := newTestPool(t, basicProfileYAML("env:IBM_MQ_MCP_BAD_BASIC", ""))
-	if _, err := pool.Admin("prod"); err == nil {
+	if _, err := pool.Admin("prod", policy.Administer); err == nil {
 		t.Fatal("expected malformed basic secret error")
 	}
 }
@@ -240,7 +244,7 @@ func TestProfilePoolBasicAuthErrorsDoNotLeakSecret(t *testing.T) {
 	const secret = "super-secret-value"
 	t.Setenv("IBM_MQ_MCP_LEAK_BASIC", secret)
 	pool := newTestPool(t, basicProfileYAML("env:IBM_MQ_MCP_LEAK_BASIC", ""))
-	_, err := pool.Admin("prod")
+	_, err := pool.Admin("prod", policy.Administer)
 	if err == nil {
 		t.Fatal("expected malformed basic secret error")
 	}
@@ -255,7 +259,7 @@ func newTestPool(t *testing.T, doc string) *ProfilePool {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pool := NewProfilePool(cat, cat.Validate(), secrets.NewResolver())
+	pool := NewProfilePool(cat, cat.Validate(), secrets.NewResolver(), nil)
 	t.Cleanup(func() { _ = pool.Close() })
 	return pool
 }
@@ -271,6 +275,9 @@ profiles:
       secretRef: env:IBM_MQ_MCP_PROD_SECRET
     tls:
       insecureSkipVerify: true
+    capabilities:
+      - administer
+      - produce
   dev:
     queueManager: QM2
     endpoint: https://mq-dev.example.test:9443
@@ -279,6 +286,9 @@ profiles:
       secretRef: env:IBM_MQ_MCP_DEV_SECRET
     tls:
       insecureSkipVerify: true
+    capabilities:
+      - administer
+      - produce
 `
 }
 
@@ -297,6 +307,9 @@ profiles:
       secretRef: ` + secretRef + `
 ` + timeoutLine + `    tls:
       insecureSkipVerify: true
+    capabilities:
+      - administer
+      - produce
 `
 }
 

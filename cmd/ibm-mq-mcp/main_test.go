@@ -50,6 +50,8 @@ profiles:
     authentication:
       type: basic
       secretRef: env:MQ_GOOD
+    capabilities:
+      - inspect
   bad:
     queueManager: QM2
     endpoint: http://insecure:9443

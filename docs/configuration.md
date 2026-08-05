@@ -28,7 +28,7 @@ Top-level key **`profiles`**: map of stable profile name → profile object.
 | `endpoint` | yes | mqweb base URL (`https://host:port`) |
 | `authentication` | yes | mqweb credential method (see [Authentication](authentication.md)) |
 | `tls` | no | TLS settings (verification on by default) |
-| `capabilities` | no | Operation grants per [ADR-0003](adr/0003-capability-model.md); enforced in POL-001 |
+| `capabilities` | yes | Operation grants per [ADR-0003](adr/0003-capability-model.md); enforced before secret resolution and MQ I/O |
 | `timeout` | no | Per-profile HTTP timeout (Go duration string, default `30s`) |
 
 Example (secret-free — refs only):
@@ -84,6 +84,7 @@ At startup the server validates **every** profile:
 - Authentication shape matches declared type
 - Secret **references** are syntactically valid (values not required yet)
 - TLS settings are coherent (e.g. custom CA path exists when referenced at use time)
+- Capability names are known per ADR-0003 and at least one grant is listed
 
 **Default (fail-open):** invalid profiles are marked unusable; healthy profiles
 remain available. **Strict (`--strict-startup`):** any validation error exits

@@ -91,6 +91,8 @@ profiles:
     authentication:
       type: basic
       secretRef: env:MQ_PASS
+    capabilities:
+      - inspect
     tls:
       caRef: env:NOT_ALLOWED
 `
@@ -134,6 +136,8 @@ profiles:
     authentication:
       type: basic
       secretRef: env:MQ_GOOD
+    capabilities:
+      - inspect
   bad:
     queueManager: QM2
     endpoint: http://insecure:9443
@@ -175,6 +179,74 @@ profiles:
 	}
 }
 
+func TestValidateRejectsUnknownCapability(t *testing.T) {
+	doc := `
+profiles:
+  bad:
+    queueManager: QM1
+    endpoint: https://mq.example.test:9443
+    authentication:
+      type: basic
+      secretRef: env:MQ_PASS
+    capabilities:
+      - read-only
+`
+	cat, err := catalog.LoadYAML([]byte(doc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := cat.Validate()
+	if result.IsValid("bad") {
+		t.Fatal("expected unknown capability rejection")
+	}
+	if result.Statuses[0].Err == nil || !strings.Contains(result.Statuses[0].Err.Error(), "unknown capability") {
+		t.Fatalf("expected unknown capability error, got %+v", result.Statuses)
+	}
+}
+
+func TestValidateRejectsEmptyCapabilities(t *testing.T) {
+	doc := `
+profiles:
+  bad:
+    queueManager: QM1
+    endpoint: https://mq.example.test:9443
+    authentication:
+      type: basic
+      secretRef: env:MQ_PASS
+`
+	cat, err := catalog.LoadYAML([]byte(doc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := cat.Validate()
+	if result.IsValid("bad") {
+		t.Fatal("expected empty capabilities rejection")
+	}
+}
+
+func TestValidateRejectsDuplicateCapability(t *testing.T) {
+	doc := `
+profiles:
+  bad:
+    queueManager: QM1
+    endpoint: https://mq.example.test:9443
+    authentication:
+      type: basic
+      secretRef: env:MQ_PASS
+    capabilities:
+      - inspect
+      - inspect
+`
+	cat, err := catalog.LoadYAML([]byte(doc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := cat.Validate()
+	if result.IsValid("bad") {
+		t.Fatal("expected duplicate capability rejection")
+	}
+}
+
 func TestValidateMTLSProfile(t *testing.T) {
 	doc := `
 profiles:
@@ -185,6 +257,8 @@ profiles:
       type: mtls
       certificateRef: file:/run/secrets/client.pem
       privateKeyRef: file:/run/secrets/client-key.pem
+    capabilities:
+      - inspect
 `
 	cat, err := catalog.LoadYAML([]byte(doc))
 	if err != nil {

@@ -9,7 +9,10 @@ import (
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/application"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/config/catalog"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/config/secrets"
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/policy"
 )
+
+const testProfileProd = "prod"
 
 func TestProfilePoolLazyResolveMissingSecret(t *testing.T) {
 	doc := `
@@ -20,16 +23,18 @@ profiles:
     authentication:
       type: basic
       secretRef: env:IBM_MQ_MCP_MISSING_POOL_SECRET
+    capabilities:
+      - administer
 `
 	cat, err := catalog.LoadYAML([]byte(doc))
 	if err != nil {
 		t.Fatal(err)
 	}
 	validation := cat.Validate()
-	pool := application.NewProfilePool(cat, validation, secrets.NewResolver())
+	pool := application.NewProfilePool(cat, validation, secrets.NewResolver(), nil)
 	t.Cleanup(func() { _ = pool.Close() })
 
-	_, err = pool.Admin("prod")
+	_, err = pool.Admin(testProfileProd, policy.Administer)
 	if err == nil {
 		t.Fatal("expected missing secret error on first use")
 	}
@@ -47,16 +52,18 @@ profiles:
     authentication:
       type: basic
       secretRef: env:MQ_PASS
+    capabilities:
+      - administer
 `
 	cat, err := catalog.LoadYAML([]byte(doc))
 	if err != nil {
 		t.Fatal(err)
 	}
 	validation := cat.Validate()
-	pool := application.NewProfilePool(cat, validation, secrets.NewResolver())
+	pool := application.NewProfilePool(cat, validation, secrets.NewResolver(), nil)
 	t.Cleanup(func() { _ = pool.Close() })
 
-	if _, err := pool.Admin("bad"); err == nil {
+	if _, err := pool.Admin("bad", policy.Administer); err == nil {
 		t.Fatal("expected validation error")
 	}
 }
@@ -73,20 +80,22 @@ profiles:
       secretRef: env:IBM_MQ_MCP_POOL_SECRET
     tls:
       insecureSkipVerify: true
+    capabilities:
+      - administer
 `
 	cat, err := catalog.LoadYAML([]byte(doc))
 	if err != nil {
 		t.Fatal(err)
 	}
 	validation := cat.Validate()
-	pool := application.NewProfilePool(cat, validation, secrets.NewResolver())
+	pool := application.NewProfilePool(cat, validation, secrets.NewResolver(), nil)
 	t.Cleanup(func() { _ = pool.Close() })
 
-	client, err := pool.Admin("prod")
+	client, err := pool.Admin(testProfileProd, policy.Administer)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if client.ProfileName() != "prod" {
+	if client.ProfileName() != testProfileProd {
 		t.Fatalf("profile = %q", client.ProfileName())
 	}
 }
@@ -100,6 +109,8 @@ profiles:
     authentication:
       type: basic
       secretRef: env:MQ_GOOD
+    capabilities:
+      - inspect
   bad:
     queueManager: QM2
     endpoint: http://bad
@@ -128,6 +139,8 @@ profiles:
     authentication:
       type: basic
       secretRef: env:MQ_PASS
+    capabilities:
+      - administer
 `), 0o600); err != nil {
 		t.Fatal(err)
 	}

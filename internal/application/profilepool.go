@@ -16,6 +16,7 @@ import (
 	mqtls "github.com/platformrelay/ibm-mq-mcp-server/internal/config/tls"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/messaging"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/mqadmin"
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/policy"
 )
 
 // LoadCatalogFromFile reads YAML or JSON profile catalogs from disk.
@@ -57,6 +58,7 @@ type ProfilePool struct {
 	catalog    *catalog.Catalog
 	validation catalog.ValidationResult
 	resolver   *secrets.Resolver
+	gate       *PolicyGate
 
 	mu        sync.Mutex
 	admin     map[string]mqadmin.Client
@@ -69,26 +71,59 @@ func NewProfilePool(
 	cat *catalog.Catalog,
 	validation catalog.ValidationResult,
 	resolver *secrets.Resolver,
+	gate *PolicyGate,
 ) *ProfilePool {
 	if resolver == nil {
 		resolver = secrets.NewResolver()
+	}
+	if gate == nil {
+		gate = NewPolicyGate()
 	}
 	return &ProfilePool{
 		catalog:    cat,
 		validation: validation,
 		resolver:   resolver,
+		gate:       gate,
 		admin:      make(map[string]mqadmin.Client),
 		messaging:  make(map[string]messaging.Client),
 	}
 }
 
-// Admin returns the administration client for a profile, resolving secrets on first use.
-func (p *ProfilePool) Admin(name string) (mqadmin.Client, error) {
+// Gate returns the policy gate for call-time authorization from MCP tools.
+func (p *ProfilePool) Gate() *PolicyGate {
+	return p.gate
+}
+
+// Authorize checks capability for profile without resolving secrets or MQ clients.
+func (p *ProfilePool) Authorize(name string, required policy.Capability, operation string) error {
+	profile, err := p.requireProfile(name)
+	if err != nil {
+		return err
+	}
+	return p.gate.Authorize(profile, required, operation)
+}
+
+// Admin returns the administration client for a profile after capability authorization.
+func (p *ProfilePool) Admin(name string, required policy.Capability) (mqadmin.Client, error) {
+	profile, err := p.requireProfile(name)
+	if err != nil {
+		return nil, err
+	}
+	if err := p.gate.Authorize(profile, required, "mqadmin"); err != nil {
+		return nil, err
+	}
 	return p.adminClient(name)
 }
 
-// Messaging returns the messaging client for a profile, resolving secrets on first use.
-func (p *ProfilePool) Messaging(name string) (messaging.Client, error) {
+// Messaging returns the messaging client for a profile after capability authorization.
+func (p *ProfilePool) Messaging(name string, required policy.Capability) (messaging.Client, error) {
+	profile, err := p.requireProfile(name)
+	if err != nil {
+		return nil, err
+	}
+	if err := p.gate.Authorize(profile, required, "messaging"); err != nil {
+		return nil, err
+	}
 	return p.messagingClient(name)
 }
 

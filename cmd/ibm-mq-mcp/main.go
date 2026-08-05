@@ -99,7 +99,7 @@ func loadProfiles(path string, strictStartup bool) (*application.ProfilePool, bo
 	if strictStartup && !validation.AllValid() {
 		return nil, false, firstValidationError(validation)
 	}
-	pool := application.NewProfilePool(cat, validation, nil)
+	pool := application.NewProfilePool(cat, validation, nil, nil)
 	return pool, application.ConfigReady(cat, validation), nil
 }
 
