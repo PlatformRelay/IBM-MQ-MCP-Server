@@ -32,6 +32,17 @@ Docs workflow deploys to the `github-pages` environment. Enable Pages
 Self-hosted Renovate uses `RENOVATE_TOKEN` when present; otherwise
 `GITHUB_TOKEN`.
 
+### 🟡 DECIDED — DOC-001 provisional doc semantics
+
+**Context:** ADR-0003/0004/0006 remain open; DOC-001 must ship honest operator
+docs without inventing capability/auth/config contracts.
+**Chose:** Mark dependent sections **provisional / TBD** with ADR links; example
+profiles under `docs/examples/` as illustrative YAML only; version matrix rows
+all **Unknown** until FND-004/MSG-001 evidence; tool reference states zero MQ
+tools with CI generation noted as future work; skip markdownlint in docs CI
+(mkdocs `--strict` is the gate).
+**Revert:** Replace provisional pages when ADRs land; fill matrix from FND-004.
+
 ### 🟡 DECIDED (awaiting approval) — FND-003 artifacts (DQ 22)
 
 **Context:** FND-003 needs mandatory artifact set before cosign/SBOM release

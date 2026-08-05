@@ -1,0 +1,29 @@
+# Illustrative mixed grants — NOT a supported config schema (ADR-0003/0004 open).
+# Demonstrates read-only production vs write-capable development on one catalog.
+
+profiles:
+  production-read:
+    queueManager: PROD1
+    endpoint: https://mq-prod.example.test:9443
+    authentication:
+      type: basic
+      secretRef: env:MQ_PROD_CREDENTIALS
+    tls:
+      caRef: file:/etc/mq/certs/production-ca.pem
+    capabilities:
+      - inspect
+      - browse
+
+  development-write:
+    queueManager: DEV1
+    endpoint: https://mq-dev.example.test:9443
+    authentication:
+      type: mtls
+      certificateRef: file:/run/secrets/dev-client.pem
+      privateKeyRef: file:/run/secrets/dev-client-key.pem
+    tls:
+      caRef: file:/etc/mq/certs/dev-ca.pem
+    capabilities:
+      - inspect
+      - browse
+      - produce

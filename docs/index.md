@@ -9,6 +9,10 @@ grants only the operations its operator permits. A production profile may be
 read-only while a development profile permits message production or selected
 administrative changes.
 
-Start with the [feature scope](product/feature-scope.md) and
-[proposed system](architecture/proposed-system.md).
+Start with the [quickstart](quickstart.md), [feature scope](product/feature-scope.md),
+and [proposed system](architecture/proposed-system.md).
+
+Operator docs cover [deployment](deployment.md), [observability](observability.md),
+[security/threat model](security/threat-model.md), and the provisional
+[IBM MQ version matrix](support/version-matrix.md).
 

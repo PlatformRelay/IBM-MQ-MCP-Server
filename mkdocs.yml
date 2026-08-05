@@ -17,6 +17,29 @@ theme:
 
 nav:
   - Overview: index.md
+  - Getting started:
+      - Quickstart: quickstart.md
+      - Configuration: configuration.md
+      - Authentication: authentication.md
+      - Policy: policy.md
+  - Tools:
+      - Tool reference: tools/index.md
+  - Examples:
+      - Overview: examples/README.md
+      - Read-only profile: examples/profile-read-only.yaml
+      - Mixed grants: examples/profile-mixed-grants.yaml
+  - Operations:
+      - Deployment: deployment.md
+      - Observability: observability.md
+      - Troubleshooting: troubleshooting.md
+      - Upgrade: upgrade.md
+      - Release process: RELEASE.md
+  - Security:
+      - Threat model: security/threat-model.md
+      - Security policy: https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/SECURITY.md
+  - Support:
+      - IBM MQ version matrix: support/version-matrix.md
+      - MKurator coexistence: support/mkurator-coexistence.md
   - Product:
       - Feature scope: product/feature-scope.md
       - Design questions: product/design-questions.md
@@ -28,11 +51,10 @@ nav:
       - ADR-0001 Go + MCP SDK: adr/0001-go-and-official-mcp-sdk.md
       - ADR-0002 mqweb first: adr/0002-mqweb-first-connectivity.md
       - ADR-0009 License + OSS: adr/0009-license-and-oss-maturity.md
-  - Operations:
-      - Release: RELEASE.md
+  - Development:
       - CI gates: development/ci-gates.md
-      - Security policy: https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/SECURITY.md
   - Planning:
+      - Roadmap: https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/agent-context/roadmap.md
       - Bootstrap proposal: https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/openspec/changes/bootstrap-mq-mcp/proposal.md
 
 markdown_extensions:

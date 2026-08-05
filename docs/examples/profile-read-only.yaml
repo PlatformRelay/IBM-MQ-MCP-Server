@@ -1,0 +1,15 @@
+# Illustrative profile — NOT a supported config schema (ADR-0003/0004 open).
+# Secret-free: references only; replace hostnames with your mqweb endpoints.
+
+profiles:
+  production-read:
+    queueManager: PROD1
+    endpoint: https://mq-prod.example.test:9443
+    authentication:
+      type: basic
+      secretRef: env:MQ_PROD_CREDENTIALS
+    tls:
+      caRef: file:/etc/mq/certs/production-ca.pem
+    capabilities:
+      - inspect
+      - browse
