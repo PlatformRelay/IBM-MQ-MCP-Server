@@ -9,6 +9,7 @@ import (
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/application"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/collection"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/messaging"
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/output"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/policy"
 )
 
@@ -64,7 +65,7 @@ func consumeToolResult(
 	err error,
 ) (*mcp.CallToolResult, collection.Page[messaging.MessageRecord], error) {
 	if err == nil {
-		return &mcp.CallToolResult{}, page, nil
+		return toolSuccess(output.RenderMessagePage(page)), page, nil
 	}
 	var partial *messaging.PartialConsumeError
 	if errors.As(err, &partial) {

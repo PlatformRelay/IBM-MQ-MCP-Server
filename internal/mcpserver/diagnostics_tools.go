@@ -7,6 +7,7 @@ import (
 
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/application"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/mqadmin"
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/output"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/policy"
 )
 
@@ -46,7 +47,8 @@ func RegisterDiagnosticsTools(server *mcp.Server, inspector *application.Inspect
 		mqadmin.ReasonExplanation,
 		error,
 	) {
-		return &mcp.CallToolResult{}, mqadmin.ExplainReasonCode(in.ReasonCode), nil
+		explanation := mqadmin.ExplainReasonCode(in.ReasonCode)
+		return toolSuccess(output.RenderReasonExplanation(explanation)), explanation, nil
 	})
 
 	if inspector == nil {
@@ -68,6 +70,6 @@ func RegisterDiagnosticsTools(server *mcp.Server, inspector *application.Inspect
 		if err != nil {
 			return toolError(err), mqadmin.ConnectivityReport{}, nil
 		}
-		return &mcp.CallToolResult{}, report, nil
+		return toolSuccess(output.RenderConnectivityReport(report)), report, nil
 	})
 }

@@ -8,6 +8,11 @@ const (
 	DefaultLimit = 50
 	// MaxLimit caps every collection request; results are never unbounded.
 	MaxLimit = 200
+
+	// FieldSelectionDeferred marks per-item field projection as not yet implemented.
+	// Pagination, filters, and truncation metadata are live; a schema-safe fields[]
+	// input awaits a follow-up slice (OUT-001-DEFERRED).
+	FieldSelectionDeferred = true
 )
 
 // TruncationReason explains why Truncated is true.

@@ -7,6 +7,7 @@ import (
 
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/application"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/messaging"
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/output"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/policy"
 )
 
@@ -54,6 +55,6 @@ func RegisterProduceTools(server *mcp.Server, producer *application.Producer) {
 		if err != nil {
 			return toolError(err), messaging.PutResult{}, nil
 		}
-		return &mcp.CallToolResult{}, result, nil
+		return toolSuccess(output.RenderPutResult(result)), result, nil
 	})
 }

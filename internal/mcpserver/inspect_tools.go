@@ -9,6 +9,7 @@ import (
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/application"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/collection"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/mqadmin"
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/output"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/policy"
 )
 
@@ -171,7 +172,7 @@ func RegisterInspectionTools(server *mcp.Server, inspector *application.Inspecto
 		if err != nil {
 			return toolError(err), collection.Page[application.ProfileSummary]{}, nil
 		}
-		return &mcp.CallToolResult{}, page, nil
+		return toolSuccess(output.RenderProfilePage(page)), page, nil
 	})
 
 	mcp.AddTool(server, &mcp.Tool{
@@ -189,7 +190,7 @@ func RegisterInspectionTools(server *mcp.Server, inspector *application.Inspecto
 		if err != nil {
 			return toolError(err), mqadmin.QueueManagerStatus{}, nil
 		}
-		return &mcp.CallToolResult{}, status, nil
+		return toolSuccess(output.RenderQueueManagerStatus(status)), status, nil
 	})
 
 	mcp.AddTool(server, &mcp.Tool{
@@ -211,7 +212,7 @@ func RegisterInspectionTools(server *mcp.Server, inspector *application.Inspecto
 		if err != nil {
 			return toolError(err), collection.Page[mqadmin.QueueSummary]{}, nil
 		}
-		return &mcp.CallToolResult{}, page, nil
+		return toolSuccess(output.RenderQueuePage(page)), page, nil
 	})
 
 	mcp.AddTool(server, &mcp.Tool{
@@ -229,7 +230,7 @@ func RegisterInspectionTools(server *mcp.Server, inspector *application.Inspecto
 		if err != nil {
 			return toolError(err), mqadmin.QueueDetail{}, nil
 		}
-		return &mcp.CallToolResult{}, detail, nil
+		return toolSuccess(output.RenderQueueDetail(detail)), detail, nil
 	})
 
 	mcp.AddTool(server, &mcp.Tool{
@@ -251,7 +252,7 @@ func RegisterInspectionTools(server *mcp.Server, inspector *application.Inspecto
 		if err != nil {
 			return toolError(err), collection.Page[mqadmin.ChannelSummary]{}, nil
 		}
-		return &mcp.CallToolResult{}, page, nil
+		return toolSuccess(output.RenderChannelPage(page)), page, nil
 	})
 
 	mcp.AddTool(server, &mcp.Tool{
@@ -269,7 +270,7 @@ func RegisterInspectionTools(server *mcp.Server, inspector *application.Inspecto
 		if err != nil {
 			return toolError(err), mqadmin.ChannelDetail{}, nil
 		}
-		return &mcp.CallToolResult{}, detail, nil
+		return toolSuccess(output.RenderChannelDetail(detail)), detail, nil
 	})
 
 	mcp.AddTool(server, &mcp.Tool{
@@ -287,7 +288,7 @@ func RegisterInspectionTools(server *mcp.Server, inspector *application.Inspecto
 		if err != nil {
 			return toolError(err), mqadmin.ChannelStatus{}, nil
 		}
-		return &mcp.CallToolResult{}, status, nil
+		return toolSuccess(output.RenderChannelStatus(status)), status, nil
 	})
 
 	mcp.AddTool(server, &mcp.Tool{
@@ -309,7 +310,7 @@ func RegisterInspectionTools(server *mcp.Server, inspector *application.Inspecto
 		if err != nil {
 			return toolError(err), collection.Page[mqadmin.ListenerSummary]{}, nil
 		}
-		return &mcp.CallToolResult{}, page, nil
+		return toolSuccess(output.RenderListenerPage(page)), page, nil
 	})
 
 	mcp.AddTool(server, &mcp.Tool{
@@ -327,7 +328,7 @@ func RegisterInspectionTools(server *mcp.Server, inspector *application.Inspecto
 		if err != nil {
 			return toolError(err), mqadmin.ListenerDetail{}, nil
 		}
-		return &mcp.CallToolResult{}, detail, nil
+		return toolSuccess(output.RenderListenerDetail(detail)), detail, nil
 	})
 
 	mcp.AddTool(server, &mcp.Tool{
@@ -345,7 +346,7 @@ func RegisterInspectionTools(server *mcp.Server, inspector *application.Inspecto
 		if err != nil {
 			return toolError(err), mqadmin.ListenerStatus{}, nil
 		}
-		return &mcp.CallToolResult{}, status, nil
+		return toolSuccess(output.RenderListenerStatus(status)), status, nil
 	})
 
 	mcp.AddTool(server, &mcp.Tool{
@@ -367,7 +368,7 @@ func RegisterInspectionTools(server *mcp.Server, inspector *application.Inspecto
 		if err != nil {
 			return toolError(err), collection.Page[mqadmin.SubscriptionSummary]{}, nil
 		}
-		return &mcp.CallToolResult{}, page, nil
+		return toolSuccess(output.RenderSubscriptionPage(page)), page, nil
 	})
 
 	mcp.AddTool(server, &mcp.Tool{
@@ -385,7 +386,7 @@ func RegisterInspectionTools(server *mcp.Server, inspector *application.Inspecto
 		if err != nil {
 			return toolError(err), mqadmin.SubscriptionDetail{}, nil
 		}
-		return &mcp.CallToolResult{}, detail, nil
+		return toolSuccess(output.RenderSubscriptionDetail(detail)), detail, nil
 	})
 }
 

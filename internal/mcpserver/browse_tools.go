@@ -8,6 +8,7 @@ import (
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/application"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/collection"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/messaging"
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/output"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/policy"
 )
 
@@ -56,6 +57,6 @@ func RegisterBrowseTools(server *mcp.Server, browser *application.Browser) {
 		if err != nil {
 			return toolError(err), collection.Page[messaging.MessageRecord]{}, nil
 		}
-		return &mcp.CallToolResult{}, page, nil
+		return toolSuccess(output.RenderMessagePage(page)), page, nil
 	})
 }

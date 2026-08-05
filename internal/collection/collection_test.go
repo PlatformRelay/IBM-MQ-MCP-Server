@@ -51,3 +51,9 @@ func TestPageJSONEnvelope(t *testing.T) {
 		}
 	}
 }
+
+func TestFieldSelectionDeferredMarker(t *testing.T) {
+	if !collection.FieldSelectionDeferred {
+		t.Fatal("field selection must remain explicitly deferred until schema-safe design lands")
+	}
+}

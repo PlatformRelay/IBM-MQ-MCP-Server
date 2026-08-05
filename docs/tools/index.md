@@ -36,8 +36,10 @@ I/O. See [NOTICE](../NOTICE.md) for IBM MQRC attribution.
     List-style tools share a JSON envelope: `items`, `limit`, optional
     `cursor` / `nextCursor`, and `truncated` (+ `truncationReason`). Inspection
     lists default limit **50** (max **200**); browse and consume default to count **10**
-    (max **100**). OUT-001 may add Markdown/TOON renderings later; clients should
-    consume `structuredContent` only.
+    (max **100**). Text `content` blocks use compact deterministic renderers
+    (`internal/output`); clients should consume `structuredContent` for typed data.
+    Field selection (`fields[]`) is **OUT-001-DEFERRED** — see
+    [output benchmarks](../development/output-benchmarks.md).
 
 Run `task run` with a config path and connect an MCP inspector to list tools.
 

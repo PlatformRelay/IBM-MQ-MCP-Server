@@ -1,7 +1,10 @@
 # Inspection and output design
 
-**Status:** Deferred until ADR-0005 is accepted and CON-001 fixes the ports.
+**Status:** Active — ADR-0005 accepted; OUT-001 landed compact text fallback.
 
-Must define the shared collection contract (filter, limit, cursor, field
-selection, truncation metadata) once and reuse it across every tool, and must
-name the benchmark fixtures used to justify any non-JSON rendering.
+Defines the shared collection contract (filter, limit, cursor, truncation
+metadata) once and reuses it across every tool. Benchmark fixtures and results
+live in [output-benchmarks.md](../../docs/development/output-benchmarks.md).
+
+Field selection (`fields[]`) is explicitly deferred (`collection.FieldSelectionDeferred`,
+marker **OUT-001-DEFERRED**) until a schema-safe projection design is agreed.
