@@ -11,5 +11,6 @@ type Client interface {
 	ProfileName() string
 	Ping(ctx context.Context) error
 	BrowseMessages(ctx context.Context, queueName string, req BrowseRequest) (collection.Page[MessageRecord], error)
+	PutMessage(ctx context.Context, queueName string, req PutRequest) (PutResult, error)
 	Close() error
 }

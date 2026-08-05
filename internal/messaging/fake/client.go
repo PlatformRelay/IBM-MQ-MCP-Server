@@ -17,11 +17,14 @@ type Client struct {
 
 	BrowseCalls  int
 	ConsumeCalls int
+	PutCalls     int
 	PingCalls    int
 	Closed       bool
 
 	BrowsePage collection.Page[messaging.MessageRecord]
 	BrowseErr  error
+	PutResult  messaging.PutResult
+	PutErr     error
 	PingErr    error
 }
 
@@ -53,6 +56,18 @@ func (c *Client) BrowseMessages(
 	return c.BrowsePage, c.BrowseErr
 }
 
+// PutMessage records the call and returns configured results.
+func (c *Client) PutMessage(
+	_ context.Context,
+	_ string,
+	_ messaging.PutRequest,
+) (messaging.PutResult, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.PutCalls++
+	return c.PutResult, c.PutErr
+}
+
 // RecordConsume simulates a destructive consume call for spy assertions.
 func (c *Client) RecordConsume() {
 	c.mu.Lock()
@@ -68,11 +83,11 @@ func (c *Client) Close() error {
 	return nil
 }
 
-// TotalCalls returns browse + consume invocations.
+// TotalCalls returns browse + consume + put invocations.
 func (c *Client) TotalCalls() int {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	return c.BrowseCalls + c.ConsumeCalls
+	return c.BrowseCalls + c.ConsumeCalls + c.PutCalls
 }
 
 // BrowseOnlyCalls returns browse invocations.

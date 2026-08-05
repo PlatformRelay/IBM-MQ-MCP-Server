@@ -31,6 +31,20 @@ type BrowseRequest struct {
 	MaxPayloadBytes int
 }
 
+// PutRequest carries validated put parameters for one queue message.
+type PutRequest struct {
+	ContentType   string
+	Payload       string
+	CorrelationID string
+}
+
+// PutResult identifies a successfully produced message without echoing payload.
+type PutResult struct {
+	MessageID     string `json:"messageId,omitempty"`
+	CorrelationID string `json:"correlationId,omitempty"`
+	Format        string `json:"format,omitempty"`
+}
+
 // MessageRecord is one browsed message (metadata with optional payload).
 type MessageRecord struct {
 	MessageID        string          `json:"messageId,omitempty"`
