@@ -24,8 +24,7 @@ through EPIC-002..008.
 [Story](stories/FND-002.md)
 
 ### FND-003 — Container packaging and release automation
-⬜ Open · License/OSS baseline done (ADR-0009); still needs artifact choices
-(binary vs container) and cosign/SBOM release wiring from Kollect/MKurator.
+✅ Done · Integrated to `main` @ 1fe36f8.
 [Story](stories/FND-003.md)
 
 ### FND-004 — Live IBM MQ development and e2e environment

@@ -4,15 +4,14 @@
 
 | Lane | Branch | Worktree | Notes |
 | --- | --- | --- | --- |
-| FND-003 — Release cosign/SBOM | `lane/fnd-003` | `../ibm-mq-mcp-fnd-003` | DQ 22 → C (binary + container); awaiting INBOX approval |
+| *(none)* | | | |
 
 ## Ready / next
 
 | Lane | Status | Notes |
 | --- | --- | --- |
-| FND-003 — Release cosign/SBOM | 🟡 In flight | See In flight |
-| OBS-001 — Health/metrics/logs | ⬜ Optional | Unblocked after FND-001; parallel polish |
-| DOC-001 — Docs & operator UX | ⬜ Optional | Can run alongside FND-003 |
+| OBS-001 — Health/metrics/logs | ⬜ Next | Unblocked; optional polish |
+| DOC-001 — Docs & operator UX | ⬜ Next | Can run alongside OBS-001 |
 
 ## Integrated / Done
 
@@ -21,6 +20,7 @@
 | ADR-0009 MIT + OSS posture | Community files, Scorecard, Docs CI, Dependabot/Renovate |
 | FND-001 — Go skeleton + minimal MCP server | Integrated to `main` @ 5edb34c |
 | FND-002 — CI quality gates | Integrated to `main` @ 99eaa5d |
+| FND-003 — Release cosign/SBOM | Integrated to `main` @ 1fe36f8 |
 
 ## Parked
 
