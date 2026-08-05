@@ -3,7 +3,8 @@
 ## Current state
 
 INS-001 and INS-002 register typed inspection tools when a profile catalog is loaded
-(`--config` / `IBM_MQ_MCP_CONFIG`). Results are returned as JSON
+(`--config` / `IBM_MQ_MCP_CONFIG`). INS-003 adds offline reason-code explanation
+and side-effect-free profile connectivity checks. Results are returned as JSON
 `structuredContent` only (provisional collection contract — see below).
 
 | Tool | Capability | Description |
@@ -20,9 +21,12 @@ INS-001 and INS-002 register typed inspection tools when a profile catalog is lo
 | `get_listener_status` | `inspect` | Listener runtime status |
 | `list_subscriptions` | `inspect` | Bounded subscription listing |
 | `get_subscription` | `inspect` | Subscription definition by id or name |
+| `explain_mq_reason_code` | _(offline reference; no MQ I/O)_ | Explain an IBM MQ reason code from bundled data; unknown codes get a generic fallback |
+| `check_profile_connectivity` | `inspect` | Verify mqweb reachability, identity match, and latency without mutation |
 
 Policy denies remote tools before credential resolution or mqweb I/O when the
-active profile lacks `inspect`.
+active profile lacks `inspect`. The offline reason-code tool never performs MQ
+I/O. See [NOTICE](../NOTICE.md) for IBM MQRC attribution.
 
 !!! note "Provisional collection contract (pre-ADR-0005)"
     List-style tools share a JSON envelope: `items`, `limit`, optional
@@ -47,7 +51,7 @@ checked by automation so the published reference cannot drift from code.
 
 | Check | Status |
 | --- | --- |
-| Schema-first tool definitions in Go | **Partial** — INS-001/INS-002 inspection tools |
+| Schema-first tool definitions in Go | **Partial** — INS-001/INS-002/INS-003 inspection and diagnostics tools |
 | Docs generation or freshness test in CI | **Planned** — optional job alongside `mkdocs build --strict` |
 | Breaking schema changes | Will require story acceptance + ADR when applicable |
 

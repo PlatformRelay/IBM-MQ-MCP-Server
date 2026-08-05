@@ -17,8 +17,21 @@
 | Connection refused on `:9090` | Ops HTTP not enabled — set `--ops-addr` or `IBM_MQ_MCP_OPS_ADDR` |
 | Metrics empty | No tool traffic yet; profile label `_none` until profiles exist |
 
-Probes intentionally **do not** ping queue managers. MQ connectivity failures
-will surface in tool errors once adapters exist — not in `/readyz` today.
+Probes intentionally **do not** ping queue managers. Use the
+`check_profile_connectivity` MCP tool (requires profile `inspect`) for
+side-effect-free mqweb reachability, identity match, and latency. Ops probes
+remain catalog-only for readiness.
+
+## IBM MQ / mqweb
+
+- **`explain_mq_reason_code`** — offline bundled reference; unknown codes return
+  a generic answer with an IBM documentation link ([NOTICE](NOTICE.md)).
+- **`check_profile_connectivity`** — read-only queue manager status probe;
+  failures report typed causes (`dns`, `tls`, `authentication`,
+  `authorization`, `timeout`, `unreachable`) without leaking credentials.
+- Verify mqweb is installed, reachable, and authorized for the profile credential.
+- Consult the [version support matrix](support/version-matrix.md) — certified
+  combinations are **not yet recorded**.
 
 ## MCP client integration
 
@@ -26,17 +39,6 @@ will surface in tool errors once adapters exist — not in `/readyz` today.
 - Remote Streamable HTTP is **TBD** ([ADR-0006](adr/README.md#decision-queue)).
 - Do not point MCP clients at `/metrics` or `/healthz` — those are operator
   endpoints, not MCP.
-
-## IBM MQ / mqweb issues (future)
-
-When mqweb connectivity lands ([CON-001](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/agent-context/stories/CON-001.md),
-[ADR-0002](adr/0002-mqweb-first-connectivity.md)):
-
-- Verify mqweb is installed, reachable, and authorized for the profile credential.
-- Consult the [version support matrix](support/version-matrix.md) — certified
-  combinations are **not yet recorded**.
-- Map MQ reason codes via [INS-003](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/agent-context/stories/INS-003.md)
-  when available.
 
 ## Security incidents
 

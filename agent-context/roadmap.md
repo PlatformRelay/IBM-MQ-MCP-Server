@@ -67,7 +67,7 @@ after POL-001.
 [Story](stories/INS-002.md)
 
 ### INS-003 — Reason-code and connectivity diagnostics
-⬜ Open · Offline explain tool unblocked; live check needs CON-001.
+✅ Done · Offline explain + connectivity check tools.
 [Story](stories/INS-003.md)
 
 ### OUT-001 — Produce token-conscious structured results
