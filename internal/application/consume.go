@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/collection"
@@ -46,14 +47,18 @@ func (c *Consumer) ConsumeQueueMessages(
 		return collection.Page[messaging.MessageRecord]{}, err
 	}
 	page, err := client.ConsumeMessages(ctx, queueName, req)
-	if err != nil {
-		return collection.Page[messaging.MessageRecord]{}, err
-	}
 	page.Limit = req.Count
 	if len(page.Items) > req.Count {
 		page.Items = page.Items[:req.Count]
 		page.Truncated = true
 		page.TruncationReason = collection.TruncationLimitReached
+	}
+	if err != nil {
+		var partial *messaging.PartialConsumeError
+		if errors.As(err, &partial) {
+			return page, err
+		}
+		return collection.Page[messaging.MessageRecord]{}, err
 	}
 	return page, nil
 }

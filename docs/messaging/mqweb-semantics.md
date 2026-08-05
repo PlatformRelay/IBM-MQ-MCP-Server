@@ -68,6 +68,11 @@ patterns in payload text are redacted before return; payloads are never logged.
   semantics than mqweb documents.
 - Incompatible message formats may remain on the queue while mqweb returns an
   error for that delete attempt.
+- **Mid-batch failure:** when a later `DELETE` fails after earlier messages
+  were removed, the tool returns **`IsError` with `structuredContent`** listing
+  messages already consumed. The page sets `truncated: true` and
+  `truncationReason: "mid_batch_failure"`. Callers must treat these messages as
+  gone from the queue even though the overall tool call failed.
 
 ## Put semantics (MSG-002, design question 17)
 

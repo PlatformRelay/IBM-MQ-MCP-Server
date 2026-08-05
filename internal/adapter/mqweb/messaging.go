@@ -117,7 +117,11 @@ func (c *messagingClient) ConsumeMessages(
 		}
 		record, found, err := c.consumeOne(ctx, queueName, waitMs, req.IncludePayload, maxBytes)
 		if err != nil {
-			return page, err
+			partialErr := messaging.NewPartialConsumeError(page, err)
+			if partial, ok := partialErr.(*messaging.PartialConsumeError); ok {
+				page = partial.Page
+			}
+			return page, partialErr
 		}
 		if !found {
 			return page, nil

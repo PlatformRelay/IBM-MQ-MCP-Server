@@ -18,6 +18,8 @@ const (
 	TruncationLimitReached TruncationReason = "limit_reached"
 	// TruncationBackendCap means the downstream API returned a partial page.
 	TruncationBackendCap TruncationReason = "backend_cap"
+	// TruncationMidBatchFailure means consume removed some messages then failed.
+	TruncationMidBatchFailure TruncationReason = "mid_batch_failure"
 )
 
 // Page is the shared envelope for list-style tool results (ADR-0005).

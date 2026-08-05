@@ -26,7 +26,7 @@ gated destructive consume. Results are returned as JSON `structuredContent` ([AD
 | `check_profile_connectivity` | `inspect` | Verify mqweb reachability, identity match, and latency without mutation |
 | `browse_queue_messages` | `browse` | Bounded non-destructive queue browse; metadata by default, optional payloads |
 | `put_queue_message` | `produce` | Put one validated message; returns identifiers only (no payload echo) |
-| `consume_queue_messages` | `consume` | Destructively get bounded messages (one mqweb DELETE each); metadata by default, optional payloads |
+| `consume_queue_messages` | `consume` | Destructively get bounded messages (one mqweb DELETE each); metadata by default, optional payloads; mid-batch failures return partial results with `truncated: true` |
 
 Policy denies remote tools before credential resolution or mqweb I/O when the
 active profile lacks the required capability (`inspect`, `browse`, etc.). The offline reason-code tool never performs MQ

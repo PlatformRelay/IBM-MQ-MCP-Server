@@ -2,6 +2,7 @@ package mcpserver
 
 import (
 	"context"
+	"errors"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -54,9 +55,20 @@ func RegisterConsumeTools(server *mcp.Server, consumer *application.Consumer) {
 			IncludePayload:  in.IncludePayload,
 			MaxPayloadBytes: in.MaxPayloadBytes,
 		})
-		if err != nil {
-			return toolError(err), collection.Page[messaging.MessageRecord]{}, nil
-		}
-		return &mcp.CallToolResult{}, page, nil
+		return consumeToolResult(page, err)
 	})
+}
+
+func consumeToolResult(
+	page collection.Page[messaging.MessageRecord],
+	err error,
+) (*mcp.CallToolResult, collection.Page[messaging.MessageRecord], error) {
+	if err == nil {
+		return &mcp.CallToolResult{}, page, nil
+	}
+	var partial *messaging.PartialConsumeError
+	if errors.As(err, &partial) {
+		return toolError(err), page, nil
+	}
+	return toolError(err), collection.Page[messaging.MessageRecord]{}, nil
 }

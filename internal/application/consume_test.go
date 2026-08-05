@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/application"
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/collection"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/config/catalog"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/messaging"
 	msgfake "github.com/platformrelay/ibm-mq-mcp-server/internal/messaging/fake"
@@ -130,6 +131,41 @@ func TestConsumerRejectsWaitIntervalOverMax(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("expected validation error")
+	}
+}
+
+func TestConsumerPreservesPartialResultsOnMidBatchFailure(t *testing.T) {
+	t.Setenv("IBM_MQ_MCP_CONSUME_SECRET", "user:pass")
+	fakeMsg := msgfake.New("prod")
+	partialPage := collection.Page[messaging.MessageRecord]{
+		Items:            []messaging.MessageRecord{{MessageID: "ID:1"}},
+		Truncated:        true,
+		TruncationReason: collection.TruncationMidBatchFailure,
+	}
+	fakeMsg.ConsumePage = partialPage
+	fakeMsg.ConsumeErr = messaging.NewPartialConsumeError(partialPage, errors.New("status 500"))
+	cat, err := catalog.LoadYAML([]byte(consumeProfileDoc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pool := newBrowsePool(t, cat, fakeMsg)
+	consumer := application.NewConsumer(pool)
+
+	page, err := consumer.ConsumeQueueMessages(context.Background(), "prod", "Q1", messaging.ConsumeRequest{
+		Count: 3,
+	})
+	if err == nil {
+		t.Fatal("expected partial consume error")
+	}
+	var partial *messaging.PartialConsumeError
+	if !errors.As(err, &partial) {
+		t.Fatalf("expected PartialConsumeError, got %T", err)
+	}
+	if len(page.Items) != 1 {
+		t.Fatalf("items = %d", len(page.Items))
+	}
+	if page.Items[0].MessageID != "ID:1" {
+		t.Fatalf("messageId = %q", page.Items[0].MessageID)
 	}
 }
 

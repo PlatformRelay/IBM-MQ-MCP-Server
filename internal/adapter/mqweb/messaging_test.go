@@ -3,6 +3,7 @@ package mqweb_test
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -11,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/adapter/mqweb"
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/collection"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/config/catalog"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/config/secrets"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/messaging"
@@ -153,6 +155,42 @@ func TestConsumeMessagesEmptyQueueReturnsNoItems(t *testing.T) {
 	}
 	if len(page.Items) != 0 {
 		t.Fatalf("items = %d, want empty queue", len(page.Items))
+	}
+}
+
+func TestConsumeMessagesMidBatchFailureReturnsPartialPage(t *testing.T) {
+	deleteCount := 0
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		deleteCount++
+		if deleteCount == 1 {
+			w.Header().Set("ibm-mq-md-messageid", "ID:first")
+			_, _ = w.Write([]byte("one"))
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(`{"reason":2033}`))
+	}))
+	t.Cleanup(server.Close)
+
+	client := newTestMessagingClientWithCaps(t, server.URL, []string{"consume"})
+	page, err := client.ConsumeMessages(context.Background(), "Q1", messaging.ConsumeRequest{
+		Count: 3,
+	})
+	if err == nil {
+		t.Fatal("expected mid-batch error")
+	}
+	var partial *messaging.PartialConsumeError
+	if !errors.As(err, &partial) {
+		t.Fatalf("expected PartialConsumeError, got %T: %v", err, err)
+	}
+	if len(page.Items) != 1 {
+		t.Fatalf("items = %d", len(page.Items))
+	}
+	if page.Items[0].MessageID != "ID:first" {
+		t.Fatalf("messageId = %q", page.Items[0].MessageID)
+	}
+	if !page.Truncated || page.TruncationReason != collection.TruncationMidBatchFailure {
+		t.Fatalf("truncation = %v reason=%q", page.Truncated, page.TruncationReason)
 	}
 }
 
