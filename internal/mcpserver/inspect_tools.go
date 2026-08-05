@@ -401,7 +401,9 @@ func NewWithInspector(inspector *application.Inspector) *mcp.Server {
 	server := New()
 	if inspector != nil {
 		RegisterInspectionTools(server, inspector)
-		RegisterBrowseTools(server, application.NewBrowser(inspectorPool(inspector)))
+		pool := inspectorPool(inspector)
+		RegisterBrowseTools(server, application.NewBrowser(pool))
+		RegisterProduceTools(server, application.NewProducer(pool))
 	}
 	RegisterDiagnosticsTools(server, inspector)
 	return server
