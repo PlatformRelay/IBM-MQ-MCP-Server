@@ -1,7 +1,7 @@
 # Connection and policy tasks
 
 - [x] Resolve ADR-0003: per-profile capability model (Accepted 2026-08-05).
-- [ ] Resolve ADR-0004: configuration and secret providers.
+- [x] Resolve ADR-0004: configuration and secret providers (Accepted 2026-08-05).
 - [ ] CON-001 — profile catalog, validation, TLS, env/file secret references.
 - [ ] CON-002 — additional secret providers.
 - [ ] POL-001 — deny-by-default capability enforcement.

@@ -35,10 +35,16 @@ tool design. Approved answers will be recorded in ADRs and linked stories.
 
 ## Connectivity and identity
 
-10. Which downstream authentication methods are required for the first release:
-    basic, mTLS, LDAP-backed basic, MQ authentication tokens, or combinations?
-11. Which secret stores must be supported first: environment, mounted files,
-    Kubernetes Secrets, Vault, or another provider?
+10. ~~Which downstream authentication methods are required for the first release:
+    basic, mTLS, LDAP-backed basic, MQ authentication tokens, or combinations?~~
+    **Answered (ADR-0004):** First release supports **HTTP Basic** (username +
+    password via secret refs) and **client-certificate mTLS** (cert/key via file
+    refs). LDAP-backed basic and MQ authentication tokens deferred to later ADRs.
+11. ~~Which secret stores must be supported first: environment, mounted files,
+    Kubernetes Secrets, Vault, or another provider?~~
+    **Answered (ADR-0004):** First release (**CON-001**) supports **environment
+    variables** and **mounted files** only; Kubernetes Secrets and Vault →
+    [CON-002](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/agent-context/stories/CON-002.md).
 12. Is remote Streamable HTTP a first-release deployment target, and if so which
     MCP-client authentication/authorization model is required?
 13. Which IBM MQ versions and platforms must be supported, including z/OS?

@@ -1,31 +1,37 @@
 # Configuration
 
-!!! warning "Provisional — ADR-0004 open"
-    Configuration file format, secret-reference schemes, and reload behaviour
-    are **not finalized**. This page describes the intended direction from the
-    [proposed system](architecture/proposed-system.md) and
-    [design questions](product/design-questions.md) (items 11–12). Track
-    [ADR-0004](adr/README.md#decision-queue) and
-    [CON-001](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/agent-context/stories/CON-001.md).
+!!! note "Schema provisional"
+    Field names and validation rules follow [ADR-0004](adr/0004-configuration-and-secrets.md).
+    Capability enforcement is [POL-001](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/agent-context/stories/POL-001.md).
 
-## Bootstrap skeleton (today)
-
-The current binary accepts:
+## Bootstrap inputs
 
 | Input | Purpose |
 | --- | --- |
+| `--config` | Path to the profile catalog YAML or JSON file |
+| `IBM_MQ_MCP_CONFIG` | Same as `--config` when the flag is omitted |
+| `--strict-startup` | Fail process start if any profile fails validation |
 | `--ops-addr` | Optional ops HTTP listen address (see [Observability](observability.md)) |
 | `IBM_MQ_MCP_OPS_ADDR` | Same as `--ops-addr` when the flag is omitted |
 
-No profile file or MQ endpoint is loaded yet. Static bootstrap validation
-succeeds with an empty configuration until [CON-001](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/agent-context/stories/CON-001.md)
-lands.
+When no config path is supplied, the server starts with an empty catalog (valid
+bootstrap). Readiness reports configuration validity without contacting queue
+managers.
 
-## Planned configuration model (TBD)
+## Profile catalog schema
 
-The target is a **named profile catalog**: each profile is an independent trust
-boundary (endpoint, TLS, credential references, capabilities). Example shape
-(literal values are placeholders — see [Examples](examples/README.md)):
+Top-level key **`profiles`**: map of stable profile name → profile object.
+
+| Field | Required | Description |
+| --- | --- | --- |
+| `queueManager` | yes | IBM MQ queue manager name |
+| `endpoint` | yes | mqweb base URL (`https://host:port`) |
+| `authentication` | yes | mqweb credential method (see [Authentication](authentication.md)) |
+| `tls` | no | TLS settings (verification on by default) |
+| `capabilities` | no | Operation grants per [ADR-0003](adr/0003-capability-model.md); enforced in POL-001 |
+| `timeout` | no | Per-profile HTTP timeout (Go duration string, default `30s`) |
+
+Example (secret-free — refs only):
 
 ```yaml
 profiles:
@@ -42,20 +48,52 @@ profiles:
       - browse
 ```
 
-Open design questions:
+See [Examples](examples/README.md) for additional illustrative profiles.
 
-- File path vs environment vs Kubernetes ConfigMap delivery ([design question 11](product/design-questions.md))
-- Whether remote Streamable HTTP config differs from stdio deployments ([ADR-0006](adr/README.md#decision-queue))
+## Secret references
 
-## Secret references (TBD)
+Production credentials must **not** appear inline in configuration. Supported
+reference schemes in v0 ([ADR-0004](adr/0004-configuration-and-secrets.md)):
 
-Production credentials must **not** appear inline in configuration values that
-are logged, returned in tool results, or echoed in errors. The first slice
-([CON-001](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/agent-context/stories/CON-001.md))
-targets environment and mounted-file providers only; Vault and Kubernetes
-Secret integrations follow [CON-002](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/agent-context/stories/CON-002.md).
+| Prefix | Example | Resolves to |
+| --- | --- | --- |
+| `env:` | `env:MQ_PROD_PASSWORD` | Environment variable value |
+| `file:` | `file:/run/secrets/mq/password` | Mounted file contents (trimmed) |
 
-## Validation
+- **HTTP Basic:** `secretRef` resolves to `username:password` (single value).
+- **mTLS:** `certificateRef` and `privateKeyRef` are file refs; optional
+  `passphraseRef` for encrypted private keys.
+- Secret **values** are resolved lazily when a profile is first used, not at
+  catalog parse time.
+- Kubernetes Secrets and Vault integrations are [CON-002](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/agent-context/stories/CON-002.md).
 
-When profiles exist, configuration validity will feed readiness (`/readyz`) without
-contacting queue managers on every probe ([OBS-001](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/agent-context/stories/OBS-001.md)).
+## TLS
+
+| Field | Default | Description |
+| --- | --- | --- |
+| (implicit) | verify on | Server certificate validated against system roots |
+| `caRef` | — | Additional CA bundle (`file:` ref) |
+| `insecureSkipVerify` | `false` | Opt-in for local Kind only — not for production |
+
+## Validation and startup behaviour
+
+At startup the server validates **every** profile:
+
+- Unique profile names
+- Required fields and well-formed URLs
+- Authentication shape matches declared type
+- Secret **references** are syntactically valid (values not required yet)
+- TLS settings are coherent (e.g. custom CA path exists when referenced at use time)
+
+**Default (fail-open):** invalid profiles are marked unusable; healthy profiles
+remain available. **Strict (`--strict-startup`):** any validation error exits
+the process.
+
+Selecting a profile for an operation is explicit (MCP tools arrive later); the
+catalog and per-profile client pool are wired in [CON-001](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/agent-context/stories/CON-001.md).
+
+## Related
+
+- [Authentication](authentication.md) — mqweb Basic and mTLS
+- [ADR-0004](adr/0004-configuration-and-secrets.md) — authoritative decision
+- [Design questions 10–11](product/design-questions.md)

@@ -37,16 +37,15 @@ through EPIC-002..008.
 [Change](../openspec/changes/connection-profiles-and-policy/proposal.md)
 
 ### CON-001 — Resolve multiple secure MQ connection profiles
-🛑 Blocked · Requires ADR-0004; env/file secrets only in this slice.
+⬜ Open · ADR-0004 Accepted; env/file secrets only in this slice.
 [Story](stories/CON-001.md)
 
 ### CON-002 — Additional secret providers
-🛑 Blocked · Requires ADR-0004 and CON-001.
+🛑 Blocked · Requires CON-001.
 [Story](stories/CON-002.md)
 
 ### POL-001 — Enforce per-profile capabilities
-⬜ Open · ADR-0003 Accepted; still requires CON-001 profile catalog (ADR-0004
-for secret providers).
+⬜ Open · ADR-0003 Accepted; ADR-0004 Accepted for secret providers.
 [Story](stories/POL-001.md)
 
 ### POL-002 — Object-name allow/deny constraints

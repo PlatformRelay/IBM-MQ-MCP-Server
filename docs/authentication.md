@@ -17,21 +17,25 @@ Until ADR-0006 is accepted, treat **stdio-only local use** as the supported
 deployment pattern. Do not document OAuth, API keys, or ingress auth as shipped
 behaviour.
 
-## Server → IBM MQ / mqweb (TBD — ADR-0004)
+## Server → IBM MQ / mqweb
 
-Downstream authentication to mqweb is planned to support (at minimum) TLS with
-custom CA, HTTP basic, and mutual TLS. LDAP-backed basic, MQ authentication
-tokens, and z/OS-specific variants are design questions — not promised for v0.
+Downstream authentication to mqweb is defined in [ADR-0004](adr/0004-configuration-and-secrets.md).
+First-release methods:
 
-| Method | Intent | Status |
+| Method | Config | Credential source |
 | --- | --- | --- |
-| TLS + custom CA | Verify mqweb endpoint | Planned ([feature scope](product/feature-scope.md)) |
-| HTTP basic | mqweb REST | Planned; credential via secret ref |
-| Mutual TLS | mqweb REST | Planned; cert/key via secret ref |
-| MQ auth tokens / OIDC | mqweb variants | Later ([feature scope](product/feature-scope.md)) |
+| HTTP Basic | `authentication.type: basic` + `secretRef` | `username:password` in env or file ref |
+| Client-certificate mTLS | `authentication.type: mtls` + `certificateRef` + `privateKeyRef` | PEM cert and key via `file:` refs |
 
-Secret delivery (env, file, Kubernetes, Vault) is owned by
-[ADR-0004](adr/README.md#decision-queue) and [CON-001](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/agent-context/stories/CON-001.md).
+| Method | Status |
+| --- | --- |
+| TLS + custom CA | Supported via `tls.caRef` ([configuration](configuration.md)) |
+| LDAP-backed basic | Deferred — later ADR |
+| MQ auth tokens / OIDC | Deferred — later ADR |
+
+Secret delivery uses **environment** and **mounted file** references only in v0
+([CON-001](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/agent-context/stories/CON-001.md));
+Kubernetes Secrets and Vault follow [CON-002](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/agent-context/stories/CON-002.md).
 
 ## Identity separation
 
@@ -45,6 +49,6 @@ profile grants it. See [Policy](policy.md) and the [threat model](security/threa
 
 ## Related pages
 
-- [Configuration](configuration.md) — profile and secret-reference layout (provisional)
+- [Configuration](configuration.md) — profile and secret-reference layout
 - [Security policy](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/SECURITY.md)
 - [Design questions 10–12](product/design-questions.md)

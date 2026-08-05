@@ -52,6 +52,7 @@ nav:
       - ADR-0001 Go + MCP SDK: adr/0001-go-and-official-mcp-sdk.md
       - ADR-0002 mqweb first: adr/0002-mqweb-first-connectivity.md
       - ADR-0003 Capability model: adr/0003-capability-model.md
+      - ADR-0004 Config and secrets: adr/0004-configuration-and-secrets.md
       - ADR-0009 License + OSS: adr/0009-license-and-oss-maturity.md
   - Development:
       - CI gates: development/ci-gates.md

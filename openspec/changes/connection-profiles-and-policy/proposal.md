@@ -1,6 +1,6 @@
 # Connection profiles and capability policy
 
-**Status:** Draft — ADR-0003 Accepted; blocked by ADR-0004
+**Status:** Draft — ADR-0003 Accepted; ADR-0004 Accepted
 
 ## Why
 
@@ -46,6 +46,6 @@ downstream I/O.
 
 - Bootstrap proposal approval.
 - ADR-0003 (capability model) — Accepted.
-- ADR-0004 (configuration and secret providers).
+- ADR-0004 (configuration and secret providers) — Accepted.
 
 Delivery slices are tracked in `agent-context/roadmap.md` under EPIC-003.

@@ -101,3 +101,23 @@ Image `icr.io/ibm-messaging/mq` not redistributed; non-production dev/CI only.
 portfolio, avoids duplicating Terraform/Helm maintenance.
 
 **Revert:** Vendor local stack or change license approach via INBOX + ADR update.
+
+## 2026-08-05 — ADR-0004 configuration and secret providers (design questions 10–11)
+
+**Context:** CON-001 requires profile catalog schema, secret-reference scheme,
+TLS defaults, mqweb authentication methods, and startup validation semantics.
+Design questions 10–11 listed candidate auth methods and secret stores.
+
+**Options considered:**
+- A: Env + file secret refs; Basic + mTLS mqweb auth; TLS verify on; fail-open
+  startup with `--strict-startup` opt-in; K8s/Vault in CON-002.
+- B: Include Kubernetes Secrets and Vault in the first release.
+- C: Allow inline secrets for local development.
+
+**Chose:** A. ADR-0004 Accepted.
+
+**Dissent noted:** Fail-open startup can defer discovery of a misconfigured profile
+until it is selected; acceptable for multi-profile prod/dev side-by-side use;
+operators can choose strict startup for CI.
+
+**Revert:** Supersede ADR-0004; reopen CON-001 until a replacement ADR is Accepted.

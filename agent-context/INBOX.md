@@ -38,6 +38,18 @@ Docs workflow deploys to the `github-pages` environment. Enable Pages
 Self-hosted Renovate uses `RENOVATE_TOKEN` when present; otherwise
 `GITHUB_TOKEN`.
 
+### 🟡 DECIDED — ADR-0004 configuration and secret providers (design questions 10–11)
+
+**Context:** CON-001 needs profile catalog, secret refs, TLS posture, and mqweb
+auth methods before implementation.
+**Chose:** Env + mounted-file secret refs only in CON-001; K8s/Vault → CON-002.
+First-release mqweb auth: HTTP Basic and client-cert mTLS; LDAP and MQ tokens
+deferred. TLS verify on by default; custom CA via file ref; `insecureSkipVerify`
+opt-in for local Kind only. File-based YAML/JSON catalog; startup validates all
+profiles; lazy credential resolution; fail-open unless `--strict-startup`. No
+inline secrets in config values.
+**Recorded:** ADR-0004 Accepted; unblocks CON-001.
+
 ### 🟡 DECIDED — DOC-001 provisional doc semantics
 
 **Context:** ADR-0003/0004/0006 remain open; DOC-001 must ship honest operator
