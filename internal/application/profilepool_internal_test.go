@@ -18,6 +18,64 @@ import (
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/config/secrets"
 )
 
+func TestProfilePoolIsolatesDistinctProfiles(t *testing.T) {
+	t.Setenv("IBM_MQ_MCP_PROD_SECRET", "prod-user:prod-pass")
+	t.Setenv("IBM_MQ_MCP_DEV_SECRET", "dev-user:dev-pass")
+	pool := newTestPool(t, twoProfileYAML())
+
+	prodAdmin, err := pool.Admin("prod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	devAdmin, err := pool.Admin("dev")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if prodAdmin == devAdmin {
+		t.Fatal("expected distinct admin client instances per profile")
+	}
+	prodAC, ok := prodAdmin.(*adminClient)
+	if !ok {
+		t.Fatal("expected adminClient for prod")
+	}
+	devAC, ok := devAdmin.(*adminClient)
+	if !ok {
+		t.Fatal("expected adminClient for dev")
+	}
+	if prodAC.endpoint == devAC.endpoint {
+		t.Fatalf("expected different endpoints, both %q", prodAC.endpoint)
+	}
+	if prodAC.username == devAC.username || prodAC.password == devAC.password {
+		t.Fatalf("expected distinct credentials, got %q/%q and %q/%q",
+			prodAC.username, prodAC.password, devAC.username, devAC.password)
+	}
+
+	prodMsg, err := pool.Messaging("prod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	devMsg, err := pool.Messaging("dev")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if prodMsg == devMsg {
+		t.Fatal("expected distinct messaging client instances per profile")
+	}
+	if prodAdmin == prodMsg {
+		t.Fatal("admin and messaging clients for same profile should be distinct instances")
+	}
+
+	if err := pool.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Admin("prod"); err == nil {
+		t.Fatal("expected prod admin error after pool close")
+	}
+	if _, err := pool.Admin("dev"); err == nil {
+		t.Fatal("expected dev admin error after pool close")
+	}
+}
+
 func TestProfilePoolReusesAdminClient(t *testing.T) {
 	t.Setenv("IBM_MQ_MCP_POOL_SECRET", "user:pass")
 	pool := newTestPool(t, basicProfileYAML("env:IBM_MQ_MCP_POOL_SECRET", ""))
@@ -200,6 +258,28 @@ func newTestPool(t *testing.T, doc string) *ProfilePool {
 	pool := NewProfilePool(cat, cat.Validate(), secrets.NewResolver())
 	t.Cleanup(func() { _ = pool.Close() })
 	return pool
+}
+
+func twoProfileYAML() string {
+	return `
+profiles:
+  prod:
+    queueManager: QM1
+    endpoint: https://mq-prod.example.test:9443
+    authentication:
+      type: basic
+      secretRef: env:IBM_MQ_MCP_PROD_SECRET
+    tls:
+      insecureSkipVerify: true
+  dev:
+    queueManager: QM2
+    endpoint: https://mq-dev.example.test:9443
+    authentication:
+      type: basic
+      secretRef: env:IBM_MQ_MCP_DEV_SECRET
+    tls:
+      insecureSkipVerify: true
+`
 }
 
 func basicProfileYAML(secretRef, timeout string) string {

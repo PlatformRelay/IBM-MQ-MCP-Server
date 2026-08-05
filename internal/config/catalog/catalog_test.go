@@ -151,6 +151,30 @@ profiles:
 	}
 }
 
+func TestValidateRejectsInvalidTimeout(t *testing.T) {
+	doc := `
+profiles:
+  bad:
+    queueManager: QM1
+    endpoint: https://mq.example.test:9443
+    timeout: not-a-duration
+    authentication:
+      type: basic
+      secretRef: env:MQ_PASS
+`
+	cat, err := catalog.LoadYAML([]byte(doc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := cat.Validate()
+	if result.IsValid("bad") {
+		t.Fatal("expected invalid timeout to mark profile invalid")
+	}
+	if result.Statuses[0].Err == nil || !strings.Contains(result.Statuses[0].Err.Error(), "timeout") {
+		t.Fatalf("expected timeout validation error, got %+v", result.Statuses)
+	}
+}
+
 func TestValidateMTLSProfile(t *testing.T) {
 	doc := `
 profiles:
