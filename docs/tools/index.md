@@ -2,16 +2,30 @@
 
 ## Current state
 
-**No IBM MQ tools are registered yet.** The bootstrap server ([FND-001](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/agent-context/stories/FND-001.md))
-exposes the MCP protocol skeleton only. Tool contracts will land with inspection
-([INS-001](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/agent-context/stories/INS-001.md)),
-messaging ([MSG-001](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/agent-context/stories/MSG-001.md) onward),
-and administration ([ADM-001](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/agent-context/stories/ADM-001.md))
-slices — each blocked on their ADRs and dependencies.
+INS-001 registers four typed inspection tools when a profile catalog is loaded
+(`--config` / `IBM_MQ_MCP_CONFIG`). Results are returned as JSON
+`structuredContent` only (provisional collection contract — see below).
 
-Run `task run` and connect an MCP inspector to confirm the empty tool list.
+| Tool | Capability | Description |
+| --- | --- | --- |
+| `list_profiles` | _(local catalog; no MQ I/O)_ | Configured profiles with capabilities and validation status |
+| `queue_manager_status` | `inspect` | Queue manager health; configured vs observed identity |
+| `list_queues` | `inspect` | Bounded queue listing with filters, cursor, truncation |
+| `get_queue` | `inspect` | Queue definition and live depth/status |
 
-## Planned surface (hypothesis)
+Policy denies remote tools before credential resolution or mqweb I/O when the
+active profile lacks `inspect`.
+
+!!! note "Provisional collection contract (pre-ADR-0005)"
+    List-style tools share a JSON envelope: `items`, `limit`, optional
+    `cursor` / `nextCursor`, and `truncated` (+ `truncationReason`). Default
+    limit is **50**; maximum is **200** — nothing is unbounded. ADR-0005 and
+    OUT-001 may add Markdown/TOON renderings later; until then operators and
+    clients should consume `structuredContent` only.
+
+Run `task run` with a config path and connect an MCP inspector to list tools.
+
+## Planned surface (remaining slices)
 
 The [proposed system](../architecture/proposed-system.md) describes a small set
 of typed, profile-explicit tools (inspect, browse, produce, etc.) with JSON
@@ -25,7 +39,7 @@ checked by automation so the published reference cannot drift from code.
 
 | Check | Status |
 | --- | --- |
-| Schema-first tool definitions in Go | Not started |
+| Schema-first tool definitions in Go | **Partial** — INS-001 inspection tools |
 | Docs generation or freshness test in CI | **Planned** — optional job alongside `mkdocs build --strict` |
 | Breaking schema changes | Will require story acceptance + ADR when applicable |
 
