@@ -43,3 +43,15 @@ with FND-001 integrate path under `/agent-loop-local`.
 **Note:** First FND-001 background implementer died at launch (API usage
 limit, 0 tool calls). Fallback: implement FND-001 **inline** in the
 coordinator session, still gated by a fresh independent reviewer (skill rule).
+
+## 2026-08-05 — DQ 22 (FND-003 mandatory artifacts)
+
+**Context:** FND-003 release wiring needs a fixed artifact set; MCP server is not
+a Kubernetes operator (no Helm requirement like siblings).
+
+**Chose:** **C** — CGO-free binary on GitHub Releases + multi-arch GHCR container
+with cosign/SBOM/provenance; no Helm/Kustomize in v0.
+
+**Status:** Logged pending operator approval (INBOX 🟡 DECIDED).
+
+**Revert:** ADR amending ADR-0009 delivery section; trim release.yaml jobs.

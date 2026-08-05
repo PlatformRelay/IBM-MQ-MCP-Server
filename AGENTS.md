@@ -63,6 +63,7 @@ task coverage      # coverage floor (mcpserver)
 task vulncheck     # govulncheck
 task scrub:tree    # forbidden-pattern scrub
 task build         # CGO-free binary
+task docker:build  # local container smoke (ibm-mq-mcp:dev, distroless nonroot)
 task run           # MCP server over stdio
 ```
 

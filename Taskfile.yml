@@ -5,6 +5,7 @@ vars:
   GOVULNCHECK_VERSION: v1.1.4
   # renovate: datasource=github-releases depName=golangci/golangci-lint
   GOLANGCI_LINT_VERSION: v2.2.2
+  DOCKER_IMAGE: ibm-mq-mcp:dev
 
 tasks:
   default:
@@ -19,6 +20,11 @@ tasks:
     cmds:
       - mkdir -p bin
       - go build -trimpath -o bin/ibm-mq-mcp ./cmd/ibm-mq-mcp
+
+  docker:build:
+    desc: Build the ibm-mq-mcp container image (local smoke tag)
+    cmds:
+      - "{{.CONTAINER_TOOL | default `docker`}} build -t {{.DOCKER_IMAGE}} ."
 
   format:
     desc: Format Go sources with gofmt

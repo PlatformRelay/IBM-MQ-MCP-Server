@@ -1,0 +1,8 @@
+# Ignore everything by default; re-include only build inputs.
+**
+
+!**/*.go
+**/*_test.go
+
+!go.mod
+!go.sum

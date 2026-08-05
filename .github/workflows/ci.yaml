@@ -166,3 +166,25 @@ jobs:
         run: task scrub:tree
         env:
           CI: "true"
+
+  docker-build:
+    name: docker-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: arduino/setup-task@c0bc642852239c2689f73f4ea6459c29405f3c52 # v3.0.0
+        with:
+          version: 3.51.1
+      - name: Build container image
+        run: task docker:build
+
+      - name: Assert image runs as nonroot (UID 65532)
+        run: |
+          user="$(docker inspect --format '{{.Config.User}}' ibm-mq-mcp:dev)"
+          echo "image user: ${user}"
+          if [ "${user}" != "65532:65532" ]; then
+            echo "::error::ibm-mq-mcp image must run as 65532:65532, got '${user}'" >&2
+            exit 1
+          fi

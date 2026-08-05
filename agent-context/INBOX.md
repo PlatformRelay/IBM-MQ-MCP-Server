@@ -31,3 +31,16 @@ Docs workflow deploys to the `github-pages` environment. Enable Pages
 
 Self-hosted Renovate uses `RENOVATE_TOKEN` when present; otherwise
 `GITHUB_TOKEN`.
+
+### 🟡 DECIDED (awaiting approval) — FND-003 artifacts (DQ 22)
+
+**Context:** FND-003 needs mandatory artifact set before cosign/SBOM release
+wiring. Siblings ship GHCR containers (+ Helm for operators). This is an MCP
+server, not a Kubernetes operator.
+**Options:** A binary-only / B container-only / C binary+container (no Helm) /
+D binary+container+Helm.
+**Chose:** **C** — CGO-free binary on GitHub Releases + multi-arch GHCR
+container with cosign/SBOM/provenance (Kollect/MKurator release pattern minus
+Helm). No Helm/Kustomize in v0.
+**Revert:** Supersede with ADR amending ADR-0009 delivery section; remove
+unwanted artifact jobs from release.yaml.

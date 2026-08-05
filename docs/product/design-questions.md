@@ -57,10 +57,11 @@ tool design. Approved answers will be recorded in ADRs and linked stories.
 21. ~~Is this intended for public open source under Apache-2.0?~~
     **Answered (ADR-0009):** public open source under **MIT**, matching
     Kollect/MKurator (not Apache-2.0).
-22. Which deployment artifacts are mandatory: standalone binary/package,
-    container, Helm chart, Kustomize, or all?
-    *(Partial: OSS baseline and cosign/SBOM release pattern locked in ADR-0009;
-    exact artifact set remains FND-003.)*
+22. ~~Which deployment artifacts are mandatory: standalone binary/package,
+    container, Helm chart, Kustomize, or all?~~
+    **Answered (DQ 22 / FND-003):** mandatory **binary** (GitHub Releases) +
+    **container** (multi-arch GHCR) with cosign/SBOM/provenance; **no Helm or
+    Kustomize in v0** (ADR-0009 delivery detail).
 23. Which clients are release targets: GitHub Copilot, desktop MCP hosts, IBM
     Bob, watsonx Orchestrate, VS Code, or others?
 24. What release quality threshold and compatibility policy should govern v0.x

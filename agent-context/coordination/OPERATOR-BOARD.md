@@ -2,13 +2,15 @@
 
 ## In flight
 
-_(none)_
+| Lane | Branch | Worktree | Notes |
+| --- | --- | --- | --- |
+| FND-003 — Release cosign/SBOM | `lane/fnd-003` | `../ibm-mq-mcp-fnd-003` | DQ 22 → C (binary + container); awaiting INBOX approval |
 
 ## Ready / next
 
 | Lane | Status | Notes |
 | --- | --- | --- |
-| FND-003 — Release cosign/SBOM | ⬜ Next | Parked on DQ 22 artifact choice |
+| FND-003 — Release cosign/SBOM | 🟡 In flight | See In flight |
 | OBS-001 — Health/metrics/logs | ⬜ Optional | Unblocked after FND-001; parallel polish |
 | DOC-001 — Docs & operator UX | ⬜ Optional | Can run alongside FND-003 |
 
