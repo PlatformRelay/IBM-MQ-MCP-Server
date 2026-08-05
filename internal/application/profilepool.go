@@ -55,15 +55,26 @@ func hasSuffixFold(path, suffix string) bool {
 
 // ProfilePool lazily resolves credentials and reuses HTTP clients per profile.
 type ProfilePool struct {
-	catalog    *catalog.Catalog
-	validation catalog.ValidationResult
-	resolver   *secrets.Resolver
-	gate       *PolicyGate
+	catalog      *catalog.Catalog
+	validation   catalog.ValidationResult
+	resolver     *secrets.Resolver
+	gate         *PolicyGate
+	adminFactory AdminClientFactory
 
 	mu        sync.Mutex
 	admin     map[string]mqadmin.Client
 	messaging map[string]messaging.Client
 	closed    bool
+}
+
+// ProfilePoolOption configures a ProfilePool.
+type ProfilePoolOption func(*ProfilePool)
+
+// WithAdminFactory injects the mqadmin client constructor (typically adapter/mqweb).
+func WithAdminFactory(factory AdminClientFactory) ProfilePoolOption {
+	return func(p *ProfilePool) {
+		p.adminFactory = factory
+	}
 }
 
 // NewProfilePool constructs a pool for validated profiles.
@@ -72,6 +83,7 @@ func NewProfilePool(
 	validation catalog.ValidationResult,
 	resolver *secrets.Resolver,
 	gate *PolicyGate,
+	opts ...ProfilePoolOption,
 ) *ProfilePool {
 	if resolver == nil {
 		resolver = secrets.NewResolver()
@@ -79,7 +91,7 @@ func NewProfilePool(
 	if gate == nil {
 		gate = NewPolicyGate()
 	}
-	return &ProfilePool{
+	p := &ProfilePool{
 		catalog:    cat,
 		validation: validation,
 		resolver:   resolver,
@@ -87,6 +99,10 @@ func NewProfilePool(
 		admin:      make(map[string]mqadmin.Client),
 		messaging:  make(map[string]messaging.Client),
 	}
+	for _, opt := range opts {
+		opt(p)
+	}
+	return p
 }
 
 // Gate returns the policy gate for call-time authorization from MCP tools.
@@ -140,7 +156,10 @@ func (p *ProfilePool) adminClient(name string) (mqadmin.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	client, err := newMQWebAdminClient(profile, p.resolver)
+	if p.adminFactory == nil {
+		return nil, errors.New("admin client factory is not configured")
+	}
+	client, err := p.adminFactory(profile, p.resolver)
 	if err != nil {
 		return nil, err
 	}
@@ -231,17 +250,7 @@ func (c *mqwebClient) Close() error {
 	return nil
 }
 
-type adminClient struct{ mqwebClient }
-
 type messagingClient struct{ mqwebClient }
-
-func newMQWebAdminClient(profile catalog.Profile, resolver *secrets.Resolver) (mqadmin.Client, error) {
-	base, err := newMQWebBaseClient(profile, resolver)
-	if err != nil {
-		return nil, err
-	}
-	return &adminClient{base}, nil
-}
 
 func newMQWebMessagingClient(profile catalog.Profile, resolver *secrets.Resolver) (messaging.Client, error) {
 	base, err := newMQWebBaseClient(profile, resolver)

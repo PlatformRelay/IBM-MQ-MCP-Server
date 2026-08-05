@@ -7,13 +7,13 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"math/big"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/adapter/mqweb"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/config/catalog"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/config/secrets"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/policy"
@@ -35,20 +35,8 @@ func TestProfilePoolIsolatesDistinctProfiles(t *testing.T) {
 	if prodAdmin == devAdmin {
 		t.Fatal("expected distinct admin client instances per profile")
 	}
-	prodAC, ok := prodAdmin.(*adminClient)
-	if !ok {
-		t.Fatal("expected adminClient for prod")
-	}
-	devAC, ok := devAdmin.(*adminClient)
-	if !ok {
-		t.Fatal("expected adminClient for dev")
-	}
-	if prodAC.endpoint == devAC.endpoint {
-		t.Fatalf("expected different endpoints, both %q", prodAC.endpoint)
-	}
-	if prodAC.username == devAC.username || prodAC.password == devAC.password {
-		t.Fatalf("expected distinct credentials, got %q/%q and %q/%q",
-			prodAC.username, prodAC.password, devAC.username, devAC.password)
+	if prodAdmin.ProfileName() != "prod" || devAdmin.ProfileName() != "dev" {
+		t.Fatalf("profile names = %q / %q", prodAdmin.ProfileName(), devAdmin.ProfileName())
 	}
 
 	prodMsg, err := pool.Messaging("prod", policy.Produce)
@@ -79,7 +67,7 @@ func TestProfilePoolIsolatesDistinctProfiles(t *testing.T) {
 
 func TestProfilePoolReusesAdminClient(t *testing.T) {
 	t.Setenv("IBM_MQ_MCP_POOL_SECRET", "user:pass")
-	pool := newTestPool(t, basicProfileYAML("env:IBM_MQ_MCP_POOL_SECRET", ""))
+	pool := newTestPool(t, basicProfileYAML("env:IBM_MQ_MCP_POOL_SECRET"))
 
 	first, err := pool.Admin("prod", policy.Administer)
 	if err != nil {
@@ -96,7 +84,7 @@ func TestProfilePoolReusesAdminClient(t *testing.T) {
 
 func TestProfilePoolReusesMessagingClient(t *testing.T) {
 	t.Setenv("IBM_MQ_MCP_POOL_SECRET", "user:pass")
-	pool := newTestPool(t, basicProfileYAML("env:IBM_MQ_MCP_POOL_SECRET", ""))
+	pool := newTestPool(t, basicProfileYAML("env:IBM_MQ_MCP_POOL_SECRET"))
 
 	first, err := pool.Messaging("prod", policy.Produce)
 	if err != nil {
@@ -113,7 +101,7 @@ func TestProfilePoolReusesMessagingClient(t *testing.T) {
 
 func TestProfilePoolCloseRejectsFurtherUse(t *testing.T) {
 	t.Setenv("IBM_MQ_MCP_POOL_SECRET", "user:pass")
-	pool := newTestPool(t, basicProfileYAML("env:IBM_MQ_MCP_POOL_SECRET", ""))
+	pool := newTestPool(t, basicProfileYAML("env:IBM_MQ_MCP_POOL_SECRET"))
 
 	if _, err := pool.Admin("prod", policy.Administer); err != nil {
 		t.Fatal(err)
@@ -125,23 +113,6 @@ func TestProfilePoolCloseRejectsFurtherUse(t *testing.T) {
 		t.Fatal("expected error after pool close")
 	} else if !strings.Contains(err.Error(), "closed") {
 		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-func TestProfilePoolAppliesTimeout(t *testing.T) {
-	t.Setenv("IBM_MQ_MCP_POOL_SECRET", "user:pass")
-	pool := newTestPool(t, basicProfileYAML("env:IBM_MQ_MCP_POOL_SECRET", "45s"))
-
-	client, err := pool.Admin("prod", policy.Administer)
-	if err != nil {
-		t.Fatal(err)
-	}
-	ac, ok := client.(*adminClient)
-	if !ok {
-		t.Fatal("expected adminClient concrete type")
-	}
-	if ac.httpClient.Timeout != 45*time.Second {
-		t.Fatalf("timeout = %v, want 45s", ac.httpClient.Timeout)
 	}
 }
 
@@ -170,37 +141,16 @@ profiles:
       - produce
 `
 	pool := newTestPool(t, doc)
-	client, err := pool.Admin("mtls", policy.Administer)
-	if err != nil {
+	if _, err := pool.Admin("mtls", policy.Administer); err != nil {
 		t.Fatal(err)
-	}
-	ac, ok := client.(*adminClient)
-	if !ok {
-		t.Fatal("expected adminClient")
-	}
-	transport, ok := ac.httpClient.Transport.(*http.Transport)
-	if !ok {
-		t.Fatal("expected http.Transport")
-	}
-	if transport.TLSClientConfig == nil || len(transport.TLSClientConfig.Certificates) < 1 {
-		t.Fatal("expected mTLS client certificate on transport")
 	}
 }
 
 func TestProfilePoolStoresBasicCredentials(t *testing.T) {
 	t.Setenv("IBM_MQ_MCP_POOL_SECRET", "alice:secret")
-	pool := newTestPool(t, basicProfileYAML("env:IBM_MQ_MCP_POOL_SECRET", ""))
-
-	client, err := pool.Admin("prod", policy.Administer)
-	if err != nil {
+	pool := newTestPool(t, basicProfileYAML("env:IBM_MQ_MCP_POOL_SECRET"))
+	if _, err := pool.Admin("prod", policy.Administer); err != nil {
 		t.Fatal(err)
-	}
-	ac, ok := client.(*adminClient)
-	if !ok {
-		t.Fatal("expected adminClient")
-	}
-	if ac.username != "alice" || ac.password != "secret" {
-		t.Fatalf("stored credentials = %q / %q", ac.username, ac.password)
 	}
 }
 
@@ -226,7 +176,7 @@ func TestParseBasicSecretRejectsMalformed(t *testing.T) {
 
 func TestProfilePoolRejectsEmptyBasicSecret(t *testing.T) {
 	t.Setenv("IBM_MQ_MCP_EMPTY_BASIC", " ")
-	pool := newTestPool(t, basicProfileYAML("env:IBM_MQ_MCP_EMPTY_BASIC", ""))
+	pool := newTestPool(t, basicProfileYAML("env:IBM_MQ_MCP_EMPTY_BASIC"))
 	if _, err := pool.Admin("prod", policy.Administer); err == nil {
 		t.Fatal("expected empty basic secret error")
 	}
@@ -234,7 +184,7 @@ func TestProfilePoolRejectsEmptyBasicSecret(t *testing.T) {
 
 func TestProfilePoolRejectsMalformedBasicSecret(t *testing.T) {
 	t.Setenv("IBM_MQ_MCP_BAD_BASIC", "not-valid-format")
-	pool := newTestPool(t, basicProfileYAML("env:IBM_MQ_MCP_BAD_BASIC", ""))
+	pool := newTestPool(t, basicProfileYAML("env:IBM_MQ_MCP_BAD_BASIC"))
 	if _, err := pool.Admin("prod", policy.Administer); err == nil {
 		t.Fatal("expected malformed basic secret error")
 	}
@@ -243,7 +193,7 @@ func TestProfilePoolRejectsMalformedBasicSecret(t *testing.T) {
 func TestProfilePoolBasicAuthErrorsDoNotLeakSecret(t *testing.T) {
 	const secret = "super-secret-value"
 	t.Setenv("IBM_MQ_MCP_LEAK_BASIC", secret)
-	pool := newTestPool(t, basicProfileYAML("env:IBM_MQ_MCP_LEAK_BASIC", ""))
+	pool := newTestPool(t, basicProfileYAML("env:IBM_MQ_MCP_LEAK_BASIC"))
 	_, err := pool.Admin("prod", policy.Administer)
 	if err == nil {
 		t.Fatal("expected malformed basic secret error")
@@ -259,7 +209,7 @@ func newTestPool(t *testing.T, doc string) *ProfilePool {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pool := NewProfilePool(cat, cat.Validate(), secrets.NewResolver(), nil)
+	pool := NewProfilePool(cat, cat.Validate(), secrets.NewResolver(), nil, WithAdminFactory(mqweb.NewAdminClient))
 	t.Cleanup(func() { _ = pool.Close() })
 	return pool
 }
@@ -292,11 +242,7 @@ profiles:
 `
 }
 
-func basicProfileYAML(secretRef, timeout string) string {
-	timeoutLine := ""
-	if timeout != "" {
-		timeoutLine = "    timeout: " + timeout + "\n"
-	}
+func basicProfileYAML(secretRef string) string {
 	return `
 profiles:
   prod:
@@ -305,7 +251,7 @@ profiles:
     authentication:
       type: basic
       secretRef: ` + secretRef + `
-` + timeoutLine + `    tls:
+    tls:
       insecureSkipVerify: true
     capabilities:
       - administer

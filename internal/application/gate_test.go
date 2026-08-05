@@ -7,6 +7,8 @@ import (
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/application"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/config/catalog"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/config/secrets"
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/mqadmin"
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/mqadmin/fake"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/policy"
 )
 
@@ -38,9 +40,11 @@ profiles:
 	if err != nil {
 		t.Fatal(err)
 	}
+	factory := func(profile catalog.Profile, _ *secrets.Resolver) (mqadmin.Client, error) {
+		return fake.New(profile.Name), nil
+	}
 	gate := application.NewPolicyGate()
-	pool := application.NewProfilePool(cat, cat.Validate(), secrets.NewResolver(), gate)
-	t.Cleanup(func() { _ = pool.Close() })
+	pool := newPool(t, cat, gate, factory)
 
 	_, err = pool.Admin("prod", policy.Administer)
 	if err == nil {
@@ -106,8 +110,10 @@ profiles:
 	if err != nil {
 		t.Fatal(err)
 	}
-	pool := application.NewProfilePool(cat, cat.Validate(), secrets.NewResolver(), nil)
-	t.Cleanup(func() { _ = pool.Close() })
+	factory := func(profile catalog.Profile, _ *secrets.Resolver) (mqadmin.Client, error) {
+		return fake.New(profile.Name), nil
+	}
+	pool := newPool(t, cat, nil, factory)
 
 	client, err := pool.Admin("prod", policy.Administer)
 	if err != nil {

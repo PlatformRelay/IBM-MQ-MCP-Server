@@ -6,11 +6,20 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/adapter/mqweb"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/application"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/config/catalog"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/config/secrets"
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/mqadmin"
+	"github.com/platformrelay/ibm-mq-mcp-server/internal/mqadmin/fake"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/policy"
 )
+
+func testAdminFactory() application.AdminClientFactory {
+	return func(profile catalog.Profile, _ *secrets.Resolver) (mqadmin.Client, error) {
+		return fake.New(profile.Name), nil
+	}
+}
 
 const testProfileProd = "prod"
 
@@ -30,9 +39,7 @@ profiles:
 	if err != nil {
 		t.Fatal(err)
 	}
-	validation := cat.Validate()
-	pool := application.NewProfilePool(cat, validation, secrets.NewResolver(), nil)
-	t.Cleanup(func() { _ = pool.Close() })
+	pool := newPool(t, cat, nil, mqweb.NewAdminClient)
 
 	_, err = pool.Admin(testProfileProd, policy.Administer)
 	if err == nil {
@@ -59,9 +66,7 @@ profiles:
 	if err != nil {
 		t.Fatal(err)
 	}
-	validation := cat.Validate()
-	pool := application.NewProfilePool(cat, validation, secrets.NewResolver(), nil)
-	t.Cleanup(func() { _ = pool.Close() })
+	pool := newPool(t, cat, nil, testAdminFactory())
 
 	if _, err := pool.Admin("bad", policy.Administer); err == nil {
 		t.Fatal("expected validation error")
@@ -87,9 +92,7 @@ profiles:
 	if err != nil {
 		t.Fatal(err)
 	}
-	validation := cat.Validate()
-	pool := application.NewProfilePool(cat, validation, secrets.NewResolver(), nil)
-	t.Cleanup(func() { _ = pool.Close() })
+	pool := newPool(t, cat, nil, testAdminFactory())
 
 	client, err := pool.Admin(testProfileProd, policy.Administer)
 	if err != nil {
