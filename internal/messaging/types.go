@@ -6,6 +6,13 @@ const (
 	// MaxBrowseCount caps every browse request.
 	MaxBrowseCount = 100
 
+	// DefaultConsumeCount mirrors browse defaults for destructive get batch size.
+	DefaultConsumeCount = DefaultBrowseCount
+	// MaxConsumeCount caps every consume request.
+	MaxConsumeCount = MaxBrowseCount
+	// MaxConsumeWaitIntervalMs caps caller wait (0 = no wait; 30000 = 30s).
+	MaxConsumeWaitIntervalMs = 30000
+
 	// DefaultMaxPayloadBytes is applied when callers omit max payload size.
 	DefaultMaxPayloadBytes = 4096
 	// HardMaxPayloadBytes is the absolute per-message payload cap.
@@ -25,6 +32,14 @@ const (
 
 // BrowseRequest bounds a non-destructive queue browse.
 type BrowseRequest struct {
+	Count           int
+	WaitIntervalMs  int
+	IncludePayload  bool
+	MaxPayloadBytes int
+}
+
+// ConsumeRequest bounds a destructive queue get (one mqweb DELETE per message).
+type ConsumeRequest struct {
 	Count           int
 	WaitIntervalMs  int
 	IncludePayload  bool

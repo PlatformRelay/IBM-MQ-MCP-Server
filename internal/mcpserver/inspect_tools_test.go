@@ -53,8 +53,8 @@ func TestInspectionToolsRegistered(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListTools: %v", err)
 	}
-	if len(res.Tools) != 16 {
-		t.Fatalf("expected 16 tools, got %d", len(res.Tools))
+	if len(res.Tools) != 17 {
+		t.Fatalf("expected 17 tools, got %d", len(res.Tools))
 	}
 }
 
@@ -225,7 +225,10 @@ func TestRegisteredToolSpecsRequireInspect(t *testing.T) {
 	pool := testInspectPool(t, nil)
 	mcpserver.NewWithInspector(application.NewInspector(pool))
 	for _, name := range mcpserver.RegisteredToolNames() {
-		if name == "explain_mq_reason_code" || name == "browse_queue_messages" || name == "put_queue_message" {
+		if name == "explain_mq_reason_code" ||
+			name == "browse_queue_messages" ||
+			name == "put_queue_message" ||
+			name == "consume_queue_messages" {
 			continue
 		}
 		found := false

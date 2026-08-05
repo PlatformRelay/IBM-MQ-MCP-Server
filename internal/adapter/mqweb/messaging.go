@@ -96,6 +96,91 @@ func (c *messagingClient) BrowseMessages(
 	return page, nil
 }
 
+func (c *messagingClient) ConsumeMessages(
+	ctx context.Context,
+	queueName string,
+	req messaging.ConsumeRequest,
+) (collection.Page[messaging.MessageRecord], error) {
+	count := messaging.NormalizeConsumeCount(req.Count)
+	page := collection.Page[messaging.MessageRecord]{
+		Limit: count,
+		Items: []messaging.MessageRecord{},
+	}
+	maxBytes := messaging.DefaultMaxPayloadBytes
+	if req.IncludePayload {
+		maxBytes = messaging.NormalizeMaxPayloadBytes(req.MaxPayloadBytes)
+	}
+	for i := 0; i < count; i++ {
+		waitMs := 0
+		if i == 0 {
+			waitMs = req.WaitIntervalMs
+		}
+		record, found, err := c.consumeOne(ctx, queueName, waitMs, req.IncludePayload, maxBytes)
+		if err != nil {
+			return page, err
+		}
+		if !found {
+			return page, nil
+		}
+		page.Items = append(page.Items, record)
+	}
+	return page, nil
+}
+
+func (c *messagingClient) consumeOne(
+	ctx context.Context,
+	queueName string,
+	waitMs int,
+	includePayload bool,
+	maxBytes int,
+) (messaging.MessageRecord, bool, error) {
+	path := fmt.Sprintf(
+		"/ibmmq/rest/%s/messaging/qmgr/%s/queue/%s/message",
+		messagingAPIVersion,
+		url.PathEscape(c.queueManager),
+		url.PathEscape(queueName),
+	)
+	query := url.Values{}
+	if waitMs > 0 {
+		query.Set("wait", strconv.Itoa(waitMs))
+	}
+	if encoded := query.Encode(); encoded != "" {
+		path += "?" + encoded
+	}
+	headers, code, body, err := c.base.delete(ctx, path, "text/plain")
+	if err != nil {
+		return messaging.MessageRecord{}, false, err
+	}
+	switch code {
+	case http.StatusNoContent:
+		return messaging.MessageRecord{}, false, nil
+	case http.StatusOK:
+	default:
+		return messaging.MessageRecord{}, false, mapHTTPError(code, body)
+	}
+	record := messageRecordFromHeaders(headers)
+	record.MessageLength = len(body)
+	if includePayload {
+		payload, enc, truncated := messaging.FormatPayload(body, maxBytes)
+		record.Payload = payload
+		record.Encoding = enc
+		record.PayloadTruncated = truncated
+	} else {
+		record.Encoding = messaging.EncodingOmitted
+	}
+	return record, true, nil
+}
+
+func messageRecordFromHeaders(headers http.Header) messaging.MessageRecord {
+	return messaging.MessageRecord{
+		MessageID:     strings.TrimSpace(headers.Get("ibm-mq-md-messageid")),
+		CorrelationID: strings.TrimSpace(headers.Get("ibm-mq-md-correlationid")),
+		Format:        strings.TrimSpace(headers.Get("ibm-mq-md-format")),
+		PutDate:       strings.TrimSpace(headers.Get("ibm-mq-md-putdate")),
+		PutTime:       strings.TrimSpace(headers.Get("ibm-mq-md-puttime")),
+	}
+}
+
 func (c *messagingClient) PutMessage(
 	ctx context.Context,
 	queueName string,
@@ -259,6 +344,36 @@ func (b *baseClient) post(
 	req.Header.Set("ibm-mq-rest-csrf-token", "1")
 	for key, value := range extraHeaders {
 		req.Header.Set(key, value)
+	}
+	if b.authType == catalog.AuthBasic && b.username != "" {
+		req.SetBasicAuth(b.username, b.password)
+	}
+	resp, err := b.httpClient.Do(req)
+	if err != nil {
+		return nil, 0, nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return resp.Header, resp.StatusCode, nil, err
+	}
+	if reason := parseReasonCode(respBody); reason != 0 && resp.StatusCode >= 400 {
+		return resp.Header, resp.StatusCode, respBody, mqadmin.MapReasonCode(reason)
+	}
+	return resp.Header, resp.StatusCode, respBody, nil
+}
+
+func (b *baseClient) delete(ctx context.Context, path, accept string) (http.Header, int, []byte, error) {
+	if b.closed {
+		return nil, 0, nil, errors.New("mqweb client closed")
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, b.endpoint+path, nil)
+	if err != nil {
+		return nil, 0, nil, err
+	}
+	req.Header.Set("ibm-mq-rest-csrf-token", "1")
+	if accept != "" {
+		req.Header.Set("Accept", accept)
 	}
 	if b.authType == catalog.AuthBasic && b.username != "" {
 		req.SetBasicAuth(b.username, b.password)

@@ -87,6 +87,107 @@ func TestBrowseMessagesMetadataOnlyOmitsPayload(t *testing.T) {
 	}
 }
 
+func TestConsumeMessagesUsesDELETEOnlyNeverGET(t *testing.T) {
+	var mu sync.Mutex
+	methods := make([]string, 0, 4)
+	deleteCount := 0
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		methods = append(methods, r.Method+" "+r.URL.Path)
+		mu.Unlock()
+		if r.Method != http.MethodDelete {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		mu.Lock()
+		deleteCount++
+		mu.Unlock()
+		w.Header().Set("ibm-mq-md-messageid", "ID:del1")
+		w.Header().Set("ibm-mq-md-format", "MQSTR")
+		_, _ = w.Write([]byte("consumed"))
+	}))
+	t.Cleanup(server.Close)
+
+	client := newTestMessagingClientWithCaps(t, server.URL, []string{"consume"})
+	page, err := client.ConsumeMessages(context.Background(), "Q1", messaging.ConsumeRequest{
+		Count:          2,
+		IncludePayload: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Items) != 2 {
+		t.Fatalf("items = %d", len(page.Items))
+	}
+	if page.Items[0].Payload != "consumed" {
+		t.Fatalf("payload = %q", page.Items[0].Payload)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if deleteCount != 2 {
+		t.Fatalf("delete calls = %d", deleteCount)
+	}
+	for _, call := range methods {
+		if strings.HasPrefix(call, "GET ") {
+			t.Fatalf("non-destructive GET invoked: %q", call)
+		}
+		if !strings.HasPrefix(call, "DELETE ") {
+			t.Fatalf("unexpected method: %q", call)
+		}
+	}
+}
+
+func TestConsumeMessagesEmptyQueueReturnsNoItems(t *testing.T) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Fatalf("method = %q", r.Method)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	t.Cleanup(server.Close)
+
+	client := newTestMessagingClientWithCaps(t, server.URL, []string{"consume"})
+	page, err := client.ConsumeMessages(context.Background(), "Q1", messaging.ConsumeRequest{Count: 5})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Items) != 0 {
+		t.Fatalf("items = %d, want empty queue", len(page.Items))
+	}
+}
+
+func TestConsumeMessagesWaitQueryOnFirstDeleteOnly(t *testing.T) {
+	var waits []string
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		waits = append(waits, r.URL.Query().Get("wait"))
+		if len(waits) == 1 {
+			w.Header().Set("ibm-mq-md-messageid", "ID:1")
+			_, _ = w.Write([]byte("one"))
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	t.Cleanup(server.Close)
+
+	client := newTestMessagingClientWithCaps(t, server.URL, []string{"consume"})
+	_, err := client.ConsumeMessages(context.Background(), "Q1", messaging.ConsumeRequest{
+		Count:          3,
+		WaitIntervalMs: 5000,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(waits) != 2 {
+		t.Fatalf("delete attempts = %d", len(waits))
+	}
+	if waits[0] != "5000" {
+		t.Fatalf("first wait = %q", waits[0])
+	}
+	if waits[1] != "" {
+		t.Fatalf("second wait = %q", waits[1])
+	}
+}
+
 func TestPutMessageUsesPOSTWithCSRFAndContentType(t *testing.T) {
 	var method, contentType, csrf string
 	var body []byte

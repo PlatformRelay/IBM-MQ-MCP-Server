@@ -404,6 +404,7 @@ func NewWithInspector(inspector *application.Inspector) *mcp.Server {
 		pool := inspectorPool(inspector)
 		RegisterBrowseTools(server, application.NewBrowser(pool))
 		RegisterProduceTools(server, application.NewProducer(pool))
+		RegisterConsumeTools(server, application.NewConsumer(pool))
 	}
 	RegisterDiagnosticsTools(server, inspector)
 	return server

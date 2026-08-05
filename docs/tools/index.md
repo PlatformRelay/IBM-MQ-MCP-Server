@@ -5,7 +5,8 @@
 INS-001 and INS-002 register typed inspection tools when a profile catalog is loaded
 (`--config` / `IBM_MQ_MCP_CONFIG`). INS-003 adds offline reason-code explanation
 and side-effect-free profile connectivity checks. MSG-001 adds bounded non-destructive
-message browse. MSG-002 adds validated message production. Results are returned as JSON `structuredContent` ([ADR-0005](../adr/0005-structured-results-and-rendering.md)).
+message browse. MSG-002 adds validated message production. MSG-003 adds separately
+gated destructive consume. Results are returned as JSON `structuredContent` ([ADR-0005](../adr/0005-structured-results-and-rendering.md)).
 
 | Tool | Capability | Description |
 | --- | --- | --- |
@@ -25,6 +26,7 @@ message browse. MSG-002 adds validated message production. Results are returned 
 | `check_profile_connectivity` | `inspect` | Verify mqweb reachability, identity match, and latency without mutation |
 | `browse_queue_messages` | `browse` | Bounded non-destructive queue browse; metadata by default, optional payloads |
 | `put_queue_message` | `produce` | Put one validated message; returns identifiers only (no payload echo) |
+| `consume_queue_messages` | `consume` | Destructively get bounded messages (one mqweb DELETE each); metadata by default, optional payloads |
 
 Policy denies remote tools before credential resolution or mqweb I/O when the
 active profile lacks the required capability (`inspect`, `browse`, etc.). The offline reason-code tool never performs MQ
@@ -33,7 +35,7 @@ I/O. See [NOTICE](../NOTICE.md) for IBM MQRC attribution.
 !!! note "Collection contract (ADR-0005)"
     List-style tools share a JSON envelope: `items`, `limit`, optional
     `cursor` / `nextCursor`, and `truncated` (+ `truncationReason`). Inspection
-    lists default limit **50** (max **200**); browse defaults to count **10**
+    lists default limit **50** (max **200**); browse and consume default to count **10**
     (max **100**). OUT-001 may add Markdown/TOON renderings later; clients should
     consume `structuredContent` only.
 

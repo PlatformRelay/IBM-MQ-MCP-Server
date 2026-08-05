@@ -13,22 +13,23 @@ claims ([version matrix](../support/version-matrix.md)).
 | --- | --- | --- | --- |
 | Browse one message | `GET` | `/ibmmq/rest/v3/messaging/qmgr/{qmgr}/queue/{queue}/message` | **No** — message remains on the queue |
 | Browse message list (metadata) | `GET` | `/ibmmq/rest/v3/messaging/qmgr/{qmgr}/queue/{queue}/messagelist` | **No** — summary JSON only |
-| Consume / destructive get | `DELETE` | `/ibmmq/rest/v3/messaging/qmgr/{qmgr}/queue/{queue}/message` | **Yes** — message removed |
+| Consume / destructive get | `DELETE` | `/ibmmq/rest/v3/messaging/qmgr/{qmgr}/queue/{queue}/message` | **Yes** — one message removed per call |
 | Produce | `POST` | `/ibmmq/rest/v3/messaging/qmgr/{qmgr}/queue/{queue}/message` | N/A (write path — MSG-002) |
 
 IBM MQ documentation and the public OpenAPI description agree: **only `DELETE`
 removes messages.** The MCP browse tool uses **`GET` on `/message` and
-`/messagelist` only** — never `DELETE`.
+`/messagelist` only** — never `DELETE`. The MCP consume tool uses **`DELETE`
+on `/message` only** — never `GET`.
 
 ## Browse proof strategy
 
 1. **Unit/contract tests** — HTTP spy asserts zero `DELETE` requests on the
    browse code path (`internal/adapter/mqweb/messaging_test.go`).
 2. **Fake messaging client** — application and MCP tests record browse calls
-   only; no consume/get hooks exist on the port.
+   only; consume uses a separate port method (`ConsumeMessages`).
 3. **Live e2e (opt-in)** — when `IBM_MQ_MCP_E2E=1`, compare queue depth
-   before and after browse via Admin REST `get queue` (planned extension to
-   `test/e2e/`; does not block unit gates).
+   before and after browse via Admin REST `get queue` (browse must not decrease
+   depth); consume e2e proves depth decreases after `DELETE`.
 
 ## Payload formats
 
@@ -45,10 +46,28 @@ removes messages.** The MCP browse tool uses **`GET` on `/message` and
 | Parameter | Default | Hard max |
 | --- | --- | --- |
 | Browse count | 10 | 100 |
+| Consume count | 10 | 100 |
+| Consume wait interval (ms) | 0 (no wait) | 30000 (30s) |
 | Max payload bytes per message | 4096 | 65536 |
 
 Server-side enforcement applies before results are serialized. Secret-like
 patterns in payload text are redacted before return; payloads are never logged.
+
+## Consume semantics (MSG-003)
+
+- mqweb performs **one destructive get per HTTP `DELETE`** on `/message`; the
+  MCP tool loops up to the requested count, stopping early on an empty queue
+  (`204 No Content`).
+- The **`wait`** query parameter (milliseconds) applies to the **first** delete
+  only; subsequent deletes in the same tool call use no wait.
+- Message metadata comes from response headers (`ibm-mq-md-messageid`, etc.);
+  bodies are optional via `includePayload`.
+- **No syncpoint, transaction, or exactly-once delivery** — if the HTTP
+  connection fails after mqweb removed a message but before the client reads
+  the response, that message may be lost. This server does not claim stronger
+  semantics than mqweb documents.
+- Incompatible message formats may remain on the queue while mqweb returns an
+  error for that delete attempt.
 
 ## Put semantics (MSG-002, design question 17)
 
@@ -71,8 +90,13 @@ Browse list calls pass (when supported by target mqweb):
 - `numberOfMessages` — bounded by server max (100)
 - `waitInterval` — caller wait in milliseconds (0 = no wait)
 
+Consume delete calls pass:
+
+- `wait` — milliseconds to wait for the first message only (0–30000)
+
 Optional filters (`messageId`, `correlationId`) are reserved for later stories;
-MSG-001 browses the next available messages only.
+MSG-001 browses the next available messages only; MSG-003 consumes the next
+available messages only.
 
 ## References
 

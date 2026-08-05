@@ -88,8 +88,7 @@ after POL-001.
 [Story](stories/MSG-002.md)
 
 ### MSG-003 — Separately gated destructive consume
-🛑 Blocked · ADR-0003 Accepted (`consume` separate from `browse`); still requires
-the MSG-001 spike.
+⬜ Open · lane/msg-003 — `consume_queue_messages`, mqweb DELETE, separate capability.
 [Story](stories/MSG-003.md)
 
 ## EPIC-006 — Guarded administration

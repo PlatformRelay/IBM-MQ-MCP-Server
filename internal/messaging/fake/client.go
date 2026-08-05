@@ -21,11 +21,13 @@ type Client struct {
 	PingCalls    int
 	Closed       bool
 
-	BrowsePage collection.Page[messaging.MessageRecord]
-	BrowseErr  error
-	PutResult  messaging.PutResult
-	PutErr     error
-	PingErr    error
+	BrowsePage  collection.Page[messaging.MessageRecord]
+	BrowseErr   error
+	ConsumePage collection.Page[messaging.MessageRecord]
+	ConsumeErr  error
+	PutResult   messaging.PutResult
+	PutErr      error
+	PingErr     error
 }
 
 // New returns a fake messaging client for the given profile name.
@@ -54,6 +56,18 @@ func (c *Client) BrowseMessages(
 	defer c.mu.Unlock()
 	c.BrowseCalls++
 	return c.BrowsePage, c.BrowseErr
+}
+
+// ConsumeMessages records the call and returns configured consume results.
+func (c *Client) ConsumeMessages(
+	_ context.Context,
+	_ string,
+	_ messaging.ConsumeRequest,
+) (collection.Page[messaging.MessageRecord], error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.ConsumeCalls++
+	return c.ConsumePage, c.ConsumeErr
 }
 
 // PutMessage records the call and returns configured results.

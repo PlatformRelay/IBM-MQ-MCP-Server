@@ -39,3 +39,33 @@ func ValidateMaxPayloadBytes(requested int) error {
 	}
 	return nil
 }
+
+// NormalizeConsumeCount clamps requested to [1, MaxConsumeCount], defaulting to DefaultConsumeCount.
+func NormalizeConsumeCount(requested int) int {
+	if requested <= 0 {
+		return DefaultConsumeCount
+	}
+	if requested > MaxConsumeCount {
+		return MaxConsumeCount
+	}
+	return requested
+}
+
+// ValidateConsumeCount returns an error when requested exceeds MaxConsumeCount without clamping.
+func ValidateConsumeCount(requested int) error {
+	if requested > MaxConsumeCount {
+		return fmt.Errorf("count %d exceeds maximum %d", requested, MaxConsumeCount)
+	}
+	return nil
+}
+
+// ValidateConsumeWaitIntervalMs rejects negative or over-max wait intervals.
+func ValidateConsumeWaitIntervalMs(ms int) error {
+	if ms < 0 {
+		return fmt.Errorf("waitIntervalMs must not be negative")
+	}
+	if ms > MaxConsumeWaitIntervalMs {
+		return fmt.Errorf("waitIntervalMs %d exceeds maximum %d", ms, MaxConsumeWaitIntervalMs)
+	}
+	return nil
+}

@@ -4,4 +4,4 @@
 - [x] Resolve payload default, format, limit, and redaction decisions.
 - [x] MSG-001 — bounded non-destructive browse.
 - [x] MSG-002 — validated message production.
-- [ ] MSG-003 — separately gated destructive consume.
+- [x] MSG-003 — separately gated destructive consume.
