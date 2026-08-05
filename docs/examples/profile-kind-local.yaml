@@ -8,8 +8,8 @@ profiles:
     endpoint: https://mq.localhost:30443
     authentication:
       type: basic
-      # Prefer IBM_MQ_MCP_MQ_PASSWORD or MQ_ADMIN_PASSWORD from the environment.
-      secretRef: env:IBM_MQ_MCP_MQ_PASSWORD
+      # Prefer MQ_ADMIN_PASSWORD or IBM_MQ_MCP_E2E_PASSWORD from the environment.
+      secretRef: env:MQ_ADMIN_PASSWORD
     tls:
       # mkcert wildcard for *.localhost in the MKurator Kind stack; production
       # profiles should use caRef with a trusted CA instead.

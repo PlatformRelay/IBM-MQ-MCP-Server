@@ -66,7 +66,7 @@ the documented default is:
 secret store when running e2e tests:
 
 ```bash
-export IBM_MQ_MCP_MQ_PASSWORD="${MQ_ADMIN_PASSWORD:-passw0rd}"   # local dev only
+export MQ_ADMIN_PASSWORD="${MQ_ADMIN_PASSWORD:-passw0rd}"   # local dev only
 ```
 
 TLS uses a mkcert wildcard for `*.localhost`. Run `mkcert -install` once on
@@ -120,7 +120,7 @@ E2e tests live under `test/e2e/` with build tag `e2e`. They are **not** part of
 | `IBM_MQ_MCP_MQ_HOST` | `mq.localhost` | HTTP `Host` for Kind ingress |
 | `IBM_MQ_MCP_MQ_QMGR` | `QM1` | Queue manager name |
 | `IBM_MQ_MCP_MQ_USER` | `admin` | mqweb user |
-| `IBM_MQ_MCP_MQ_PASSWORD` | `passw0rd` | mqweb password (local dev default) |
+| `MQ_ADMIN_PASSWORD` / `IBM_MQ_MCP_E2E_PASSWORD` | `passw0rd` if unset | mqweb password; e2e reads `MQ_ADMIN_PASSWORD` then `IBM_MQ_MCP_E2E_PASSWORD` |
 | `IBM_MQ_MCP_MQ_INSECURE_TLS` | `true` | Skip TLS verify for mkcert local dev |
 
 **Behaviour:**
@@ -134,7 +134,7 @@ Full local smoke:
 ```bash
 task mq:kind:up
 export IBM_MQ_MCP_E2E=1
-export IBM_MQ_MCP_MQ_PASSWORD="${MQ_ADMIN_PASSWORD:-passw0rd}"
+export MQ_ADMIN_PASSWORD="${MQ_ADMIN_PASSWORD:-passw0rd}"
 task test:e2e
 task mq:kind:down
 ```

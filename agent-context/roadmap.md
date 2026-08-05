@@ -28,7 +28,7 @@ through EPIC-002..008.
 [Story](stories/FND-003.md)
 
 ### FND-004 — Live IBM MQ development and e2e environment
-✅ Done · lane/fnd-004 — MKurator Kind reuse, opt-in e2e, Developers license documented.
+✅ Done · Integrated to `main` @ 8bcf962 — MKurator Kind reuse, opt-in e2e, Developers license documented.
 [Story](stories/FND-004.md)
 
 ## EPIC-003 — Connection profiles and capability policy
