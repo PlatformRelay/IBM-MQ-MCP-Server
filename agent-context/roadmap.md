@@ -45,11 +45,13 @@ through EPIC-002..008.
 [Story](stories/CON-002.md)
 
 ### POL-001 — Enforce per-profile capabilities
-🛑 Blocked · Requires ADR-0003 capability semantics.
+⬜ Open · ADR-0003 Accepted; still requires CON-001 profile catalog (ADR-0004
+for secret providers).
 [Story](stories/POL-001.md)
 
 ### POL-002 — Object-name allow/deny constraints
-🛑 Blocked · ADR-0003 decides whether this is first release.
+🛑 Blocked · ADR-0003 deferred per-object allow/deny to post-v0; implement
+after POL-001.
 [Story](stories/POL-002.md)
 
 ## EPIC-004 — Typed inspection and token-conscious output
@@ -87,7 +89,8 @@ through EPIC-002..008.
 [Story](stories/MSG-002.md)
 
 ### MSG-003 — Separately gated destructive consume
-🛑 Blocked · Requires ADR-0003 and the MSG-001 spike.
+🛑 Blocked · ADR-0003 Accepted (`consume` separate from `browse`); still requires
+the MSG-001 spike.
 [Story](stories/MSG-003.md)
 
 ## EPIC-006 — Guarded administration
@@ -96,7 +99,8 @@ through EPIC-002..008.
 [Change](../openspec/changes/guarded-administration/proposal.md)
 
 ### ADM-001 — Typed queue administration
-🛑 Blocked · Requires ADR-0003 and ADR-0007.
+🛑 Blocked · ADR-0003 Accepted (`administer` distinct from `produce`); still
+requires ADR-0007.
 [Story](stories/ADM-001.md)
 
 ### ADM-002 — Administer channels, channel authentication, authority records

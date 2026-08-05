@@ -14,15 +14,24 @@ tool design. Approved answers will be recorded in ADRs and linked stories.
 
 ## Authorization semantics
 
-5. Does “read-only” include message payload browsing or only metadata and
-   administrative inspection?
-6. Does “write-only” mean message production only, or also object
-   administration?
-7. Should destructive consume/get be a separate capability from browse?
-8. Should raw MQSC be omitted, allowlisted, or available behind an exceptional
-   capability?
-9. Are profile-level permissions sufficient initially, or are queue/object name
-   allowlists required in the first release?
+5. ~~Does “read-only” include message payload browsing or only metadata and
+   administrative inspection?~~
+   **Answered (ADR-0003):** “Read-only production” is `inspect` plus optional
+   `browse`; browse does not imply default payloads (see also Q15).
+6. ~~Does “write-only” mean message production only, or also object
+   administration?~~
+   **Answered (ADR-0003):** `produce` and `administer` are distinct capabilities;
+   neither implies the other.
+7. ~~Should destructive consume/get be a separate capability from browse?~~
+   **Answered (ADR-0003):** Yes — `consume` is separate from `browse`.
+8. ~~Should raw MQSC be omitted, allowlisted, or available behind an exceptional
+   capability?~~
+   **Answered (ADR-0003):** `execute_mqsc` is an exceptional, off-by-default
+   capability; it is not implied by `administer`.
+9. ~~Are profile-level permissions sufficient initially, or are queue/object name
+   allowlists required in the first release?~~
+   **Answered (ADR-0003):** Profile-level capabilities are sufficient for v0;
+   per-object allow/deny is deferred to POL-002 / post-v0.
 
 ## Connectivity and identity
 

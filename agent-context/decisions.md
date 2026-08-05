@@ -55,3 +55,27 @@ with cosign/SBOM/provenance; no Helm/Kustomize in v0.
 **Status:** Logged pending operator approval (INBOX 🟡 DECIDED).
 
 **Revert:** ADR amending ADR-0009 delivery section; trim release.yaml jobs.
+
+## 2026-08-05 — ADR-0003 capability model (design questions 5–9)
+
+**Context:** EPIC-003 and POL-001/POL-002/MSG-003/ADM-* require a
+deny-by-default capability vocabulary. Design questions 5–9 define read-only
+semantics, produce vs administer, consume vs browse, raw MQSC, and whether
+object-level constraints belong in v0.
+
+**Options considered:**
+- A: Operation-oriented capabilities (`inspect`, `browse`, `consume`, `produce`,
+  `administer`, `execute_mqsc`); deny-by-default; one required capability per
+  tool; defer per-object allow/deny to POL-002 / post-v0.
+- B: Coarse profile modes (`read`, `write`, `admin`) mapped to internal
+  allowlists.
+- C: Modes plus explicit capability overrides.
+
+**Chose:** A. ADR-0003 Accepted.
+
+**Dissent noted:** Six named capabilities are slightly more operator-facing than
+a single mode; acceptable because ambiguity in B/C is worse for audit and
+“read prod / write dev” separation.
+
+**Revert:** Supersede ADR-0003; reopen POL-001 until a replacement ADR is
+Accepted.
