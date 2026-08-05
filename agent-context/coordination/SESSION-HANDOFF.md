@@ -5,20 +5,18 @@
 
 ## State
 
+- **main tip:** `5edb34cc99e058987d59e655eda6289e63587427`
+- FND-001 integrated (Go module skeleton, minimal MCP server, boundary tests, Taskfile).
 - Product intent **Accepted**; ADR-0009 **Accepted** (MIT + OSS baseline).
-- Kollect/MKurator patterns ported: community files, badges, Scorecard, Docs
-  CI, gitleaks CI, Dependabot + Renovate, issue/PR templates, CODEOWNERS.
-- Cosign/SBOM release deferred to FND-003 (named pattern, not copied YAML yet).
-- Push-to-main authorization still requested in INBOX.
+- Remote `lane/fnd-001` deleted after ff-merge.
 
 ## Next
 
-1. Initial commit + push `main` + set repo topics.
-2. Dispatch **FND-001** implementer (worktree, TDD).
-3. Independent review → Integrator (needs push auth).
+1. Dispatch **FND-002** implementer (CI quality gates).
+2. Independent review → Integrator when FND-002 ready.
 
 ## Do not
 
-- Register MQ tools in FND-001.
+- Register MQ tools in FND-001 scope (already merged — still out of scope for FND-002 unless story says so).
 - Open PRs under this local loop.
 - Auto-merge without independent APPROVE.

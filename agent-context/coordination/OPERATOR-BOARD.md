@@ -2,15 +2,13 @@
 
 ## In flight
 
-_(none — preparing initial main push, then FND-001)_
+_(none)_
 
 ## Ready / next
 
 | Lane | Status | Notes |
 | --- | --- | --- |
-| OSS + design baseline → `main` | 🔶 Integrating | First commit(s); then topics |
-| FND-001 — Go skeleton + minimal MCP server | ⬜ Next | Disjoint from docs-only follow-ups |
-| FND-002 — CI quality gates | ⬜ After FND-001 | CodeQL, golangci, coverage, Taskfile |
+| FND-002 — CI quality gates | ⬜ Next | CodeQL, golangci, coverage, Taskfile |
 | FND-003 — Release cosign/SBOM | ⬜ After FND-002 | Needs DQ 22 artifact choice |
 
 ## Integrated / Done
@@ -18,6 +16,7 @@ _(none — preparing initial main push, then FND-001)_
 | Item | Notes |
 | --- | --- |
 | ADR-0009 MIT + OSS posture | Community files, Scorecard, Docs CI, Dependabot/Renovate |
+| FND-001 — Go skeleton + minimal MCP server | Integrated to `main` @ 5edb34c |
 
 ## Parked
 

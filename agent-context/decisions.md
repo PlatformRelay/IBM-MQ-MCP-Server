@@ -31,3 +31,15 @@ inferential; operator can revert via INBOX instructions. Apache-2.0 has a
 stronger patent grant — rejected for portfolio consistency.
 
 **Revert:** See INBOX 🟡/🔴 DECIDED entries.
+
+## 2026-08-05 — Operator confirms intent + git auth
+
+**Context:** Operator message: bootstrap proposal approved; authorizes
+`push-to-main` and `remote-branch-delete` for ibm-mq-mcp.
+
+**Chose:** Treat prior decide-and-log as confirmed; clear INBOX gates; proceed
+with FND-001 integrate path under `/agent-loop-local`.
+
+**Note:** First FND-001 background implementer died at launch (API usage
+limit, 0 tool calls). Fallback: implement FND-001 **inline** in the
+coordinator session, still gated by a fresh independent reviewer (skill rule).

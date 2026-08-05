@@ -16,7 +16,7 @@ through EPIC-002..008.
 [Change](../openspec/changes/bootstrap-mq-mcp/proposal.md)
 
 ### FND-001 — Establish the Go module skeleton and minimal MCP server
-⬜ Open · Ready (product intent + ADR-0001/0009 accepted).
+✅ Done · Integrated to `main` @ 5edb34c.
 [Story](stories/FND-001.md)
 
 ### FND-002 — Enforce CI quality gates and supply-chain checks
