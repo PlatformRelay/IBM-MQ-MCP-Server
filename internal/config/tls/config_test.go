@@ -48,3 +48,16 @@ func TestBuildConfigWithCAFile(t *testing.T) {
 		t.Fatal("expected CA parse error for invalid cert bytes")
 	}
 }
+
+func TestApplyClientCertificateLoadsKeyPair(t *testing.T) {
+	dir := t.TempDir()
+	certPath, keyPath := writeTestClientKeyPair(t, dir)
+	resolver := secrets.NewResolver()
+	cfg := &tls.Config{MinVersion: tls.VersionTLS12}
+	if err := mqtls.ApplyClientCertificate(cfg, "file:"+certPath, "file:"+keyPath, "", resolver); err != nil {
+		t.Fatal(err)
+	}
+	if len(cfg.Certificates) < 1 {
+		t.Fatal("expected client certificate on tls.Config")
+	}
+}

@@ -4,6 +4,7 @@ package tls
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"os"
@@ -65,6 +66,74 @@ func BuildConfig(settings Settings, resolver *secrets.Resolver) (*tls.Config, er
 	}
 	cfg.RootCAs = pool
 	return cfg, nil
+}
+
+// ApplyClientCertificate loads PEM client certificate and key refs into cfg.Certificates.
+func ApplyClientCertificate(
+	cfg *tls.Config,
+	certRef, keyRef, passphraseRef string,
+	resolver *secrets.Resolver,
+) error {
+	if cfg == nil {
+		return errors.New("tls config is nil")
+	}
+	certPEM, err := resolveFilePEM(certRef, resolver)
+	if err != nil {
+		return fmt.Errorf("client certificate: %w", err)
+	}
+	keyPEM, err := resolveFilePEM(keyRef, resolver)
+	if err != nil {
+		return fmt.Errorf("client private key: %w", err)
+	}
+	var passphrase []byte
+	if passphraseRef != "" {
+		passRef, parseErr := secrets.Parse(passphraseRef)
+		if parseErr != nil {
+			return fmt.Errorf("passphraseRef: %w", parseErr)
+		}
+		value, resolveErr := resolver.Resolve(passRef)
+		if resolveErr != nil {
+			return fmt.Errorf("resolve key passphrase: %w", resolveErr)
+		}
+		passphrase = []byte(value)
+	}
+	pair, err := loadX509KeyPair(certPEM, keyPEM, passphrase)
+	if err != nil {
+		return fmt.Errorf("load client key pair: %w", err)
+	}
+	cfg.Certificates = []tls.Certificate{pair}
+	return nil
+}
+
+func resolveFilePEM(ref string, resolver *secrets.Resolver) (string, error) {
+	parsed, err := secrets.Parse(ref)
+	if err != nil {
+		return "", err
+	}
+	if parsed.Provider != secrets.ProviderFile {
+		return "", errors.New("must use file: prefix")
+	}
+	return resolver.Resolve(parsed)
+}
+
+func loadX509KeyPair(certPEM, keyPEM string, passphrase []byte) (tls.Certificate, error) {
+	if len(passphrase) == 0 {
+		return tls.X509KeyPair([]byte(certPEM), []byte(keyPEM))
+	}
+	keyBlock, _ := pem.Decode([]byte(keyPEM))
+	if keyBlock == nil {
+		return tls.Certificate{}, errors.New("failed to decode private key PEM")
+	}
+	if x509.IsEncryptedPEMBlock(keyBlock) { //nolint:staticcheck // encrypted PEM keys remain common in MQ deployments
+		decrypted, err := x509.DecryptPEMBlock(keyBlock, passphrase) //nolint:staticcheck // see above
+		if err != nil {
+			return tls.Certificate{}, fmt.Errorf("decrypt private key: %w", err)
+		}
+		keyBlock.Bytes = decrypted
+		keyBlock.Headers = nil
+		keyPEM = string(pem.EncodeToMemory(keyBlock))
+	}
+	return tls.X509KeyPair([]byte(certPEM), []byte(keyPEM))
 }
 
 // CAFileExists reports whether a caRef file is present (startup check helper).

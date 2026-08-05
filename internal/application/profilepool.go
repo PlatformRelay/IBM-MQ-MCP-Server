@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -167,11 +168,17 @@ type mqwebClient struct {
 	endpoint   string
 	httpClient *http.Client
 	authType   catalog.AuthType
+	username   string
+	password   string
+	closed     bool
 }
 
-func (c mqwebClient) ProfileName() string { return c.name }
+func (c *mqwebClient) ProfileName() string { return c.name }
 
-func (c mqwebClient) Ping(ctx context.Context) error {
+func (c *mqwebClient) Ping(ctx context.Context) error {
+	if c.closed {
+		return errors.New("mqweb client closed")
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.endpoint+"/health", nil)
 	if err != nil {
 		return err
@@ -184,7 +191,10 @@ func (c mqwebClient) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (c mqwebClient) Close() error { return nil }
+func (c *mqwebClient) Close() error {
+	c.closed = true
+	return nil
+}
 
 type adminClient struct{ mqwebClient }
 
@@ -195,7 +205,7 @@ func newMQWebAdminClient(profile catalog.Profile, resolver *secrets.Resolver) (m
 	if err != nil {
 		return nil, err
 	}
-	return adminClient{base}, nil
+	return &adminClient{base}, nil
 }
 
 func newMQWebMessagingClient(profile catalog.Profile, resolver *secrets.Resolver) (messaging.Client, error) {
@@ -203,22 +213,34 @@ func newMQWebMessagingClient(profile catalog.Profile, resolver *secrets.Resolver
 	if err != nil {
 		return nil, err
 	}
-	return messagingClient{base}, nil
+	return &messagingClient{base}, nil
 }
 
 func newMQWebBaseClient(profile catalog.Profile, resolver *secrets.Resolver) (mqwebClient, error) {
-	if err := resolveAuth(profile.Authentication, resolver); err != nil {
+	creds, err := resolveAuth(profile.Authentication, resolver)
+	if err != nil {
 		return mqwebClient{}, err
 	}
 	tlsCfg, err := mqtls.BuildConfig(profile.TLS, resolver)
 	if err != nil {
 		return mqwebClient{}, err
 	}
-	timeout := 30 * time.Second
-	if profile.Timeout != "" {
-		if d, err := time.ParseDuration(profile.Timeout); err == nil {
-			timeout = d
+	if profile.Authentication.Type == catalog.AuthMTLS {
+		auth := profile.Authentication
+		certErr := mqtls.ApplyClientCertificate(
+			tlsCfg,
+			auth.CertificateRef,
+			auth.PrivateKeyRef,
+			auth.PassphraseRef,
+			resolver,
+		)
+		if certErr != nil {
+			return mqwebClient{}, certErr
 		}
+	}
+	timeout, err := profileTimeout(profile.Timeout)
+	if err != nil {
+		return mqwebClient{}, err
 	}
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.TLSClientConfig = tlsCfg
@@ -226,6 +248,8 @@ func newMQWebBaseClient(profile catalog.Profile, resolver *secrets.Resolver) (mq
 		name:     profile.Name,
 		endpoint: profile.Endpoint,
 		authType: profile.Authentication.Type,
+		username: creds.username,
+		password: creds.password,
 		httpClient: &http.Client{
 			Timeout:   timeout,
 			Transport: transport,
@@ -233,16 +257,38 @@ func newMQWebBaseClient(profile catalog.Profile, resolver *secrets.Resolver) (mq
 	}, nil
 }
 
-func resolveAuth(auth catalog.Authentication, resolver *secrets.Resolver) error {
+func profileTimeout(raw string) (time.Duration, error) {
+	if raw == "" {
+		return 30 * time.Second, nil
+	}
+	d, err := time.ParseDuration(raw)
+	if err != nil {
+		return 0, fmt.Errorf("timeout: %w", err)
+	}
+	return d, nil
+}
+
+type resolvedCredentials struct {
+	username string
+	password string
+}
+
+func resolveAuth(auth catalog.Authentication, resolver *secrets.Resolver) (resolvedCredentials, error) {
 	switch auth.Type {
 	case catalog.AuthBasic:
 		ref, err := secrets.Parse(auth.SecretRef)
 		if err != nil {
-			return err
+			return resolvedCredentials{}, err
 		}
-		if _, err := resolver.Resolve(ref); err != nil {
-			return fmt.Errorf("resolve basic credentials: %w", err)
+		secret, err := resolver.Resolve(ref)
+		if err != nil {
+			return resolvedCredentials{}, fmt.Errorf("resolve basic credentials: %w", err)
 		}
+		user, pass, err := parseBasicSecret(secret)
+		if err != nil {
+			return resolvedCredentials{}, err
+		}
+		return resolvedCredentials{username: user, password: pass}, nil
 	case catalog.AuthMTLS:
 		for _, raw := range []string{auth.CertificateRef, auth.PrivateKeyRef, auth.PassphraseRef} {
 			if raw == "" {
@@ -250,16 +296,31 @@ func resolveAuth(auth catalog.Authentication, resolver *secrets.Resolver) error 
 			}
 			ref, err := secrets.Parse(raw)
 			if err != nil {
-				return err
+				return resolvedCredentials{}, err
 			}
 			if _, err := resolver.Resolve(ref); err != nil {
-				return fmt.Errorf("resolve mtls material: %w", err)
+				return resolvedCredentials{}, fmt.Errorf("resolve mtls material: %w", err)
 			}
 		}
 	default:
-		return fmt.Errorf("unsupported authentication type %q", auth.Type)
+		return resolvedCredentials{}, fmt.Errorf("unsupported authentication type %q", auth.Type)
 	}
-	return nil
+	return resolvedCredentials{}, nil
+}
+
+func parseBasicSecret(value string) (username, password string, err error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return "", "", errors.New("basic credentials secret is empty")
+	}
+	user, pass, ok := strings.Cut(value, ":")
+	if !ok || strings.TrimSpace(user) == "" {
+		return "", "", errors.New("basic credentials must be username:password")
+	}
+	if strings.TrimSpace(pass) == "" {
+		return "", "", errors.New("basic credentials password must not be empty")
+	}
+	return user, pass, nil
 }
 
 // ConfigReady reports whether readiness should succeed for the loaded catalog.
