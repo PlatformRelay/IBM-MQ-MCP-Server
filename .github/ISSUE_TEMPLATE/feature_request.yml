@@ -1,0 +1,34 @@
+name: Feature request
+description: Propose a capability or improvement
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check [design questions](https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/docs/product/design-questions.md)
+        and open ADRs before proposing scope that changes trust boundaries.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What problem does this solve for operators or MCP clients?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: Desired behavior, including which profile capabilities it would need.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: checkboxes
+    id: security
+    attributes:
+      label: Security awareness
+      options:
+        - label: I have considered deny-by-default capabilities and credential leakage risks
+          required: true

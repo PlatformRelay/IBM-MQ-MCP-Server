@@ -1,0 +1,2 @@
+# Detect generated / vendored paths for Linguist and CodeQL once they exist.
+*.gen.go linguist-generated=true

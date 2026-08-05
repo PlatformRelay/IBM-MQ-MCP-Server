@@ -1,0 +1,46 @@
+# Dependabot — action SHAs and (once present) Go module patches.
+# Taskfile tool pins and image tags are managed by Renovate (see renovate.json).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: ":arrow_up:"
+      include: scope
+
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    groups:
+      go-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+    commit-message:
+      prefix: ":arrow_up:"
+      include: scope
+    # Harmless before go.mod exists; Dependabot skips until the ecosystem appears.
+    ignore: []
+
+  - package-ecosystem: pip
+    directory: /docs
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: ":arrow_up:"
+      include: scope

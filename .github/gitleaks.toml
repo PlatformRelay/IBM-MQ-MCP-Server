@@ -1,0 +1,11 @@
+# IBM MQ MCP Server — gitleaks config
+title = "ibm-mq-mcp gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+paths = [
+  '''(?:^|/)agent-context/''',
+  '''(?:^|/)AGENTS\.md$''',
+]

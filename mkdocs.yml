@@ -1,0 +1,50 @@
+site_name: IBM MQ MCP Server
+site_description: Safe, multi-queue-manager Model Context Protocol server for IBM MQ
+site_url: https://platformrelay.github.io/IBM-MQ-MCP-Server/
+repo_url: https://github.com/PlatformRelay/IBM-MQ-MCP-Server
+repo_name: PlatformRelay/IBM-MQ-MCP-Server
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - toc.follow
+
+nav:
+  - Overview: index.md
+  - Product:
+      - Feature scope: product/feature-scope.md
+      - Design questions: product/design-questions.md
+  - Architecture:
+      - Reference assessment: architecture/reference-assessment.md
+      - Proposed system: architecture/proposed-system.md
+      - Design audit: architecture/design-audit.md
+      - Decisions: adr/README.md
+      - ADR-0001 Go + MCP SDK: adr/0001-go-and-official-mcp-sdk.md
+      - ADR-0002 mqweb first: adr/0002-mqweb-first-connectivity.md
+      - ADR-0009 License + OSS: adr/0009-license-and-oss-maturity.md
+  - Operations:
+      - Release: RELEASE.md
+      - Security policy: https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/SECURITY.md
+  - Planning:
+      - Bootstrap proposal: https://github.com/PlatformRelay/IBM-MQ-MCP-Server/blob/main/openspec/changes/bootstrap-mq-mcp/proposal.md
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - toc:
+      permalink: true
+
+docs_dir: docs
+site_dir: site

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":disableDependencyDashboard"
+  ],
+  "labels": ["dependencies"],
+  "semanticCommits": "disabled",
+  "commitMessagePrefix": ":arrow_up:",
+  "commitMessageAction": "chore(deps): update",
+  "ignorePaths": [
+    "bin/**",
+    ".task/**",
+    "site/**"
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Annotated Taskfile tool versions (when Taskfile.yml exists)",
+      "managerFilePatterns": ["/Taskfile\\.yml$/"],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\n\\s+[A-Z0-9_]+_VERSION: (?<currentValue>\\S+)"
+      ],
+      "datasourceTemplate": "{{datasource}}",
+      "depNameTemplate": "{{depName}}"
+    },
+    {
+      "customType": "regex",
+      "description": "Pinned gitleaks release download in CI",
+      "managerFilePatterns": ["/^\\.github/workflows/ci\\.yaml$/"],
+      "matchStrings": [
+        "releases/download/v[0-9.]+/gitleaks_(?<currentValue>[0-9.]+)_linux_x64\\.tar\\.gz"
+      ],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "gitleaks/gitleaks",
+      "autoReplaceStringTemplate": "releases/download/v{{{newValue}}}/gitleaks_{{{newValue}}}_linux_x64.tar.gz"
+    }
+  ]
+}

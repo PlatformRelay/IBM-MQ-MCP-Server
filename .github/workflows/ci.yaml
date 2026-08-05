@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  gitleaks:
+    name: gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Install gitleaks
+        env:
+          GITLEAKS_VERSION: "8.30.1"
+        run: |
+          set -euo pipefail
+          OS=linux
+          ARCH=x64
+          TARBALL="gitleaks_${GITLEAKS_VERSION}_${OS}_${ARCH}.tar.gz"
+          BASE="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
+          curl -fsSL "${BASE}/${TARBALL}" -o "/tmp/${TARBALL}"
+          EXPECTED="$(curl -fsSL "${BASE}/gitleaks_${GITLEAKS_VERSION}_checksums.txt" | awk -v f="${TARBALL}" '$2 == f {print $1}')"
+          echo "${EXPECTED}  /tmp/${TARBALL}" | sha256sum -c -
+          tar -xzf "/tmp/${TARBALL}" -C /tmp gitleaks
+          sudo install -m 0755 /tmp/gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+
+      - name: Scan for secrets
+        run: gitleaks detect --source . --config .github/gitleaks.toml --verbose --redact --no-git
+
+  oss-hygiene:
+    name: OSS hygiene
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Required community files
+        run: |
+          set -euo pipefail
+          for f in \
+            LICENSE \
+            SECURITY.md \
+            CODE_OF_CONDUCT.md \
+            CONTRIBUTING.md \
+            GOVERNANCE.md \
+            SUPPORT.md \
+            CODEOWNERS \
+            README.md \
+            AGENTS.md \
+            .editorconfig \
+            .github/dependabot.yml \
+            renovate.json
+          do
+            test -f "$f" || { echo "missing required file: $f" >&2; exit 1; }
+          done
+          echo "OSS hygiene files present."

@@ -1,0 +1,35 @@
+# Runtime and documentation build artifacts
+site/
+.venv/
+.coverage
+coverage.xml
+coverage.out
+cover.out
+dist/
+build/
+bin/
+.task/
+.renovate/
+
+# Go
+*.exe
+*.test
+*.out
+vendor/
+
+# Editor and OS files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~
+
+# Secrets / local env
+.env
+.env.*
+!.env.example
+
+# This repository intentionally versions its agent guidance and planning state.
+!AGENTS.md
+!agent-context/
+!agent-context/**
