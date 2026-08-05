@@ -43,7 +43,7 @@ done
     echo "sbom.spdx.json missing from ${DIST}/ (required for checksums)" >&2
     exit 1
   fi
-  files=("${BINARY}"_*_"${VERSION}"_*.tar.gz "sbom.spdx.json")
+  files=("${BINARY}"_"${VERSION}"_*.tar.gz "sbom.spdx.json")
   sha256sum "${files[@]}" >checksums.txt
 )
 

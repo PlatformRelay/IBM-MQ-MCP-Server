@@ -78,6 +78,46 @@ func TestReleaseWorkflowDefinesSupplyChainSteps(t *testing.T) {
 	}
 }
 
+func TestReleaseAssetsChecksumGlobMatchesTarballNames(t *testing.T) {
+	t.Parallel()
+
+	root := filepath.Join("..", "..")
+	path := filepath.Join(root, "hack", "release-assets.sh")
+	data, err := os.ReadFile(path) //nolint:gosec // G304: fixed path
+	if err != nil {
+		t.Fatalf("read release-assets.sh: %v", err)
+	}
+	body := string(data)
+
+	tarballPattern := regexp.MustCompile(`\$\{DIST\}/\$\{BINARY\}_\$\{VERSION\}_\$\{GOOS\}_\$\{GOARCH\}\.tar\.gz`)
+	if !tarballPattern.MatchString(body) {
+		t.Fatal("release-assets.sh must build tarballs as ${BINARY}_${VERSION}_${GOOS}_${GOARCH}.tar.gz")
+	}
+
+	checksumGlob := regexp.MustCompile(`files=\("\$\{BINARY\}"_"\$\{VERSION\}"_\*\.tar\.gz`)
+	if !checksumGlob.MatchString(body) {
+		t.Fatal("release-assets.sh checksum glob must be ${BINARY}_${VERSION}_*.tar.gz to match tarball names")
+	}
+
+	// Guard against the v0.1.0 regression: version-before-os/arch tarballs do not match
+	// a middle-version glob like ibm-mq-mcp_*_0.1.0_*.tar.gz.
+	sample := "ibm-mq-mcp_0.1.0_linux_amd64.tar.gz"
+	ok, err := filepath.Match("ibm-mq-mcp_0.1.0_*.tar.gz", sample)
+	if err != nil {
+		t.Fatalf("match checksum glob: %v", err)
+	}
+	if !ok {
+		t.Errorf("checksum glob ibm-mq-mcp_0.1.0_*.tar.gz does not match sample tarball %q", sample)
+	}
+	ok, err = filepath.Match("ibm-mq-mcp_*_0.1.0_*.tar.gz", sample)
+	if err != nil {
+		t.Fatalf("match legacy glob: %v", err)
+	}
+	if ok {
+		t.Errorf("legacy checksum glob ibm-mq-mcp_*_0.1.0_*.tar.gz must not match tarball %q", sample)
+	}
+}
+
 func TestCIWorkflowDefinesDockerBuildJob(t *testing.T) {
 	t.Parallel()
 
