@@ -30,7 +30,7 @@ func TestParseFileReference(t *testing.T) {
 }
 
 func TestParseRejectsInlineAndUnknown(t *testing.T) {
-	cases := []string{"", "vault:secret/data/mq", "super-secret-value", "env:"}
+	cases := []string{"", "vault:secret/data/mq", "super-secret-value", "env:", "k8s:bad-ref"}
 	for _, c := range cases {
 		if _, err := secrets.Parse(c); err == nil {
 			t.Fatalf("Parse(%q) expected error", c)

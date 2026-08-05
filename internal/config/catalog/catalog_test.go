@@ -268,3 +268,56 @@ profiles:
 		t.Fatal("expected valid mtls profile")
 	}
 }
+
+func TestValidateK8sSecretRef(t *testing.T) {
+	doc := `
+profiles:
+  k8s-profile:
+    queueManager: QM1
+    endpoint: https://mq.example.test:9443
+    authentication:
+      type: basic
+      secretRef: k8s:mq-system/mq-credentials#password
+    capabilities:
+      - inspect
+`
+	cat, err := catalog.LoadYAML([]byte(doc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cat.Validate().IsValid("k8s-profile") {
+		t.Fatal("expected valid k8s secretRef profile")
+	}
+}
+
+func TestValidateRejectsVaultSecretRef(t *testing.T) {
+	doc := `
+profiles:
+  bad:
+    queueManager: QM1
+    endpoint: https://mq.example.test:9443
+    authentication:
+      type: basic
+      secretRef: vault:secret/data/mq
+    capabilities:
+      - inspect
+`
+	cat, err := catalog.LoadYAML([]byte(doc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := cat.Validate()
+	if result.IsValid("bad") {
+		t.Fatal("expected vault secretRef rejection")
+	}
+	var vaultErr error
+	for _, s := range result.Statuses {
+		if s.Name == "bad" {
+			vaultErr = s.Err
+			break
+		}
+	}
+	if vaultErr == nil || !strings.Contains(vaultErr.Error(), "unsupported secret reference") {
+		t.Fatalf("err = %v", vaultErr)
+	}
+}

@@ -1,4 +1,4 @@
-// Package secrets resolves env: and file: secret references without logging values.
+// Package secrets resolves env:, file:, and k8s: secret references without logging values.
 package secrets
 
 import (
@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 )
 
 // Provider names a supported secret reference scheme (ADR-0004).
@@ -16,15 +17,21 @@ const (
 	ProviderEnv Provider = "env"
 	// ProviderFile resolves secrets from mounted files.
 	ProviderFile Provider = "file"
+	// ProviderK8s resolves secrets from Kubernetes Secrets.
+	ProviderK8s Provider = "k8s"
 )
 
 // Reference is a parsed secret reference safe to log.
 type Reference struct {
 	Provider Provider
-	Name     string
+	Name     string // env var or file path
+	// K8s fields are set when Provider is ProviderK8s.
+	K8sNamespace string
+	K8sSecret    string
+	K8sKey       string
 }
 
-// Parse validates and parses env:NAME or file:PATH references.
+// Parse validates and parses env:, file:, or k8s: references.
 func Parse(ref string) (Reference, error) {
 	ref = strings.TrimSpace(ref)
 	if ref == "" {
@@ -43,22 +50,51 @@ func Parse(ref string) (Reference, error) {
 			return Reference{}, errors.New("file reference requires a path")
 		}
 		return Reference{Provider: ProviderFile, Name: path}, nil
+	case strings.HasPrefix(ref, "k8s:"):
+		return parseK8sReference(ref)
 	default:
-		return Reference{}, fmt.Errorf("unsupported secret reference %q: use env: or file", redactForError(ref))
+		return Reference{}, fmt.Errorf(
+			"unsupported secret reference %q (supported schemes: env, file, k8s)",
+			redactForError(ref),
+		)
 	}
 }
 
 // String returns a log-safe representation of the reference.
 func (r Reference) String() string {
+	if r.Provider == ProviderK8s {
+		return fmt.Sprintf("k8s:%s/%s#%s", r.K8sNamespace, r.K8sSecret, r.K8sKey)
+	}
 	return fmt.Sprintf("%s:%s", r.Provider, r.Name)
 }
 
-// Resolver reads secret values lazily from the environment or filesystem.
-type Resolver struct{}
+// ResolverOption configures a secret resolver.
+type ResolverOption func(*Resolver)
 
-// NewResolver returns a secret resolver backed by the process environment.
-func NewResolver() *Resolver {
-	return &Resolver{}
+// WithK8sReader injects a Kubernetes secret reader. A nil reader disables k8s resolution.
+func WithK8sReader(reader K8sSecretReader) ResolverOption {
+	return func(r *Resolver) {
+		r.k8s = reader
+		r.k8sConfigured = true
+	}
+}
+
+// Resolver reads secret values lazily from configured providers.
+type Resolver struct {
+	k8s           K8sSecretReader
+	k8sConfigured bool
+	lazyOnce      sync.Once
+	lazyReader    K8sSecretReader
+	lazyErr       error
+}
+
+// NewResolver returns a secret resolver backed by the process environment and optional providers.
+func NewResolver(opts ...ResolverOption) *Resolver {
+	r := &Resolver{}
+	for _, opt := range opts {
+		opt(r)
+	}
+	return r
 }
 
 // Resolve returns the secret value for a reference. Callers must not log the result.
@@ -76,6 +112,8 @@ func (r *Resolver) Resolve(ref Reference) (string, error) {
 			return "", fmt.Errorf("read secret file %q: %w", ref.Name, err)
 		}
 		return strings.TrimRight(string(data), "\r\n"), nil
+	case ProviderK8s:
+		return r.resolveK8s(ref)
 	default:
 		return "", fmt.Errorf("unsupported provider %q", ref.Provider)
 	}
