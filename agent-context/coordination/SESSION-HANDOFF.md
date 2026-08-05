@@ -5,10 +5,16 @@
 
 ## State
 
-- **main tip:** (see latest commit after integrate bookkeeping)
+- **main tip:** `f69cae45b2de4d558e7573f19ba7b90cb77feed0`
 - DOC-001 integrated — MkDocs operator docs, examples, threat model, version matrix (provisional rows), `docs_test.go`; ff-merge @ `9efa2f9`.
 - OBS-001 integrated @ `7f1c256`; FND-003 @ `1fe36f8`; FND-002 @ `99eaa5d`; FND-001 @ `5edb34c`.
 - Remote `lane/doc-001` deleted after ff-merge.
+
+## In flight
+
+| Lane | Branch | Worktree | Notes |
+| --- | --- | --- | --- |
+| — | — | — | — |
 
 ## Before first tag
 
@@ -16,7 +22,11 @@ Create the GitHub **Environment** named `release` (repo Settings → Environment
 
 ## Next
 
-Backlog is **largely ADR-blocked** — decide or draft ADR-0003 (capabilities), ADR-0004 (secrets), ADR-0006 (remote MCP), ADR-0007/0008 before CON/POL/MSG/ADM/SEC/INT lanes. Optional **FND-004** remains parked (licensing + live MQ spike).
+**ADR-0003** (capability model) — decide operation-oriented capabilities vs coarse modes; unblocks CON/POL lanes and downstream MSG/ADM policy gates.
+
+**FND-004** remains parked (licensing + live MQ spike).
+
+Remaining implementation backlog (INS-*, OUT-*, MSG-*, etc.) stays **ADR-gated** until ADR-0003/0004/0006/0007/0008 land as listed on the roadmap.
 
 ## Do not
 
