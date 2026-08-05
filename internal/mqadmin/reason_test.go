@@ -39,3 +39,14 @@ func TestReasonCodeFromHTTPStatus(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+func TestReasonCodeFromHTTPStatus401IsAuthentication(t *testing.T) {
+	err := mqadmin.ReasonCodeFromHTTPStatus(401)
+	if _, ok := mqadmin.AsReasonError(err); ok {
+		t.Fatalf("401 must not map to MQRC reason code, got %v", err)
+	}
+	cause, _ := mqadmin.ClassifyConnectivityError(err)
+	if cause != mqadmin.FailureAuthentication {
+		t.Fatalf("401 should classify as authentication, got %q", cause)
+	}
+}

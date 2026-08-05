@@ -42,12 +42,6 @@ func ClassifyConnectivityError(err error) (FailureCause, string) {
 	if err == nil {
 		return "", ""
 	}
-	if re, ok := AsReasonError(err); ok {
-		switch re.Code {
-		case 2035:
-			return FailureAuthorization, re.Error()
-		}
-	}
 	msg := err.Error()
 	lower := strings.ToLower(msg)
 	switch {
@@ -59,18 +53,23 @@ func ClassifyConnectivityError(err error) (FailureCause, string) {
 		return FailureDNS, msg
 	case isTLSError(err):
 		return FailureTLS, msg
+	case strings.Contains(lower, "http 401"):
+		return FailureAuthentication, msg
+	case strings.Contains(lower, "http 403"):
+		return FailureAuthorization, msg
 	case strings.Contains(lower, "resolve basic credentials"),
 		strings.Contains(lower, "basic credentials"),
 		strings.Contains(lower, "resolve mtls material"),
 		strings.Contains(lower, "authentication type"):
 		return FailureAuthentication, msg
-	case strings.Contains(lower, "http 401"):
-		return FailureAuthentication, msg
-	case strings.Contains(lower, "http 403"):
-		return FailureAuthorization, msg
-	default:
-		return FailureUnreachable, msg
 	}
+	if re, ok := AsReasonError(err); ok {
+		switch re.Code {
+		case 2035:
+			return FailureAuthorization, re.Error()
+		}
+	}
+	return FailureUnreachable, msg
 }
 
 // SanitizeConnectivityDetail removes credential-like substrings from error text.
@@ -118,7 +117,7 @@ func BuildConnectivityReport(
 ) ConnectivityReport {
 	report := ConnectivityReport{
 		Profile:   profileName,
-		Endpoint:  endpoint,
+		Endpoint:  RedactEndpointCredentials(endpoint),
 		CheckedAt: time.Now().UTC(),
 		LatencyMs: time.Since(start).Milliseconds(),
 		Identity: Identity{

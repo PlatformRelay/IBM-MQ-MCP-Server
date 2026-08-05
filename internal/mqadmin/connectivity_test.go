@@ -2,11 +2,11 @@ package mqadmin_test
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/mqadmin"
 )
@@ -32,7 +32,7 @@ func TestClassifyConnectivityErrorAuthentication(t *testing.T) {
 	if cause != mqadmin.FailureAuthorization {
 		t.Fatalf("2035 should map to authorization, got %q", cause)
 	}
-	err := fmt.Errorf("mqweb request failed with HTTP %d", 401)
+	err := mqadmin.ReasonCodeFromHTTPStatus(401)
 	cause, _ = mqadmin.ClassifyConnectivityError(err)
 	if cause != mqadmin.FailureAuthentication {
 		t.Fatalf("401 should map to authentication, got %q", cause)
@@ -72,9 +72,34 @@ func (timeoutError) Timeout() bool   { return true }
 func (timeoutError) Temporary() bool { return false }
 
 func TestClassifyConnectivityErrorReasonAuthorization(t *testing.T) {
-	err := errors.New("mqweb request failed with HTTP 403")
+	err := mqadmin.ReasonCodeFromHTTPStatus(403)
 	cause, _ := mqadmin.ClassifyConnectivityError(err)
 	if cause != mqadmin.FailureAuthorization {
 		t.Fatalf("403 should map to authorization, got %q", cause)
+	}
+}
+
+func TestBuildConnectivityReportRedactsEndpointCredentials(t *testing.T) {
+	start := time.Now().Add(-5 * time.Millisecond)
+	report := mqadmin.BuildConnectivityReport(
+		"prod",
+		"https://mquser:mqsecret@mq.example.test:9443",
+		"QM1",
+		start,
+		mqadmin.QueueManagerStatus{},
+		fmt.Errorf("resolve basic credentials: missing env"),
+	)
+	if strings.Contains(report.Endpoint, "mqsecret") || strings.Contains(report.Endpoint, "mquser") {
+		t.Fatalf("endpoint leaked credentials: %q", report.Endpoint)
+	}
+	if strings.Contains(report.Detail, "mqsecret") {
+		t.Fatalf("detail leaked credentials: %q", report.Detail)
+	}
+}
+
+func TestRedactEndpointCredentials(t *testing.T) {
+	redacted := mqadmin.RedactEndpointCredentials("https://user:pass@mq.example.test:9443/path")
+	if strings.Contains(redacted, "pass") || strings.Contains(redacted, "user@") {
+		t.Fatalf("redacted = %q", redacted)
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net"
+	"strings"
 	"testing"
 	"time"
 
@@ -313,6 +314,46 @@ func TestInspectorCheckProfileConnectivityStaleIdentity(t *testing.T) {
 	}
 }
 
+func TestInspectorCheckProfileConnectivityRedactsEndpoint(t *testing.T) {
+	doc := `
+profiles:
+  prod:
+    queueManager: QM1
+    endpoint: https://mquser:mqsecret@mq.example.test:9443
+    authentication:
+      type: basic
+      secretRef: env:IBM_MQ_MCP_INSPECT_SECRET
+    tls:
+      insecureSkipVerify: true
+    capabilities:
+      - inspect
+`
+	t.Setenv("IBM_MQ_MCP_INSPECT_SECRET", "user:pass")
+	cat, err := catalog.LoadYAML([]byte(doc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	fakeClient := fake.New("prod")
+	fakeClient.QMStatus = mqadmin.QueueManagerStatus{
+		Profile:      "prod",
+		Availability: mqadmin.Available,
+		Identity:     mqadmin.Identity{Configured: "QM1", Observed: "QM1"},
+	}
+	factory := func(_ catalog.Profile, _ *secrets.Resolver) (mqadmin.Client, error) {
+		return fakeClient, nil
+	}
+	pool := newPool(t, cat, nil, factory)
+	inspector := application.NewInspector(pool)
+
+	report, err := inspector.CheckProfileConnectivity(context.Background(), "prod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(report.Endpoint, "mqsecret") || strings.Contains(report.Endpoint, "mquser") {
+		t.Fatalf("endpoint leaked credentials: %q", report.Endpoint)
+	}
+}
+
 func TestInspectorCheckProfileConnectivitySecretFailure(t *testing.T) {
 	doc := `
 profiles:
@@ -343,5 +384,8 @@ profiles:
 	}
 	if report.FailureCause != mqadmin.FailureAuthentication {
 		t.Fatalf("cause = %q detail=%q", report.FailureCause, report.Detail)
+	}
+	if strings.Contains(report.Detail, "user:") || strings.Contains(report.Detail, ":pass") {
+		t.Fatalf("detail should not contain credential material: %q", report.Detail)
 	}
 }

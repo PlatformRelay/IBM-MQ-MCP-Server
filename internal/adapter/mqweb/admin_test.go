@@ -153,4 +153,45 @@ func TestAdminClientMapsHTTP403ToReasonCode(t *testing.T) {
 	if _, ok := mqadmin.AsReasonError(err); !ok {
 		t.Fatalf("expected ReasonError, got %v", err)
 	}
+	cause, _ := mqadmin.ClassifyConnectivityError(err)
+	if cause != mqadmin.FailureAuthorization {
+		t.Fatalf("403 should classify as authorization, got %q", cause)
+	}
+}
+
+func TestAdminClientMapsHTTP401ToAuthentication(t *testing.T) {
+	t.Setenv("IBM_MQ_MCP_TEST_SECRET", "user:pass")
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+	}))
+	t.Cleanup(srv.Close)
+
+	profile := catalog.Profile{
+		Name:         "prod",
+		QueueManager: "QM1",
+		Endpoint:     srv.URL,
+		Authentication: catalog.Authentication{
+			Type:      catalog.AuthBasic,
+			SecretRef: "env:IBM_MQ_MCP_TEST_SECRET",
+		},
+		TLS: mqtls.Settings{InsecureSkipVerify: true},
+	}
+
+	client, err := mqweb.NewAdminClient(profile, secrets.NewResolver())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = client.Close() })
+
+	_, err = client.GetQueue(context.Background(), "MISSING")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if _, ok := mqadmin.AsReasonError(err); ok {
+		t.Fatalf("401 must not map to ReasonError, got %v", err)
+	}
+	cause, _ := mqadmin.ClassifyConnectivityError(err)
+	if cause != mqadmin.FailureAuthentication {
+		t.Fatalf("401 should classify as authentication, got %q", cause)
+	}
 }
