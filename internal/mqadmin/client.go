@@ -45,4 +45,6 @@ type Client interface {
 	DefineAuthrec(ctx context.Context, req DefineAuthrecRequest) (AuthrecMutationResult, error)
 	AlterAuthrec(ctx context.Context, req AlterAuthrecRequest) (AuthrecMutationResult, error)
 	DeleteAuthrec(ctx context.Context, target AuthrecTarget) (AuthrecMutationResult, error)
+
+	ExecuteRawMQSC(ctx context.Context, command string) (RawMQSCResult, error)
 }

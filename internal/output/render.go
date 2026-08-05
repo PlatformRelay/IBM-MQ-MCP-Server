@@ -349,6 +349,18 @@ func RenderAuthrecMutationResult(result mqadmin.AuthrecMutationResult) string {
 	return joinPairs(pairs...)
 }
 
+// RenderRawMQSCResult renders exceptional raw MQSC completion metadata.
+func RenderRawMQSCResult(result mqadmin.RawMQSCResult) string {
+	return joinPairs(
+		kv("profile", result.Profile),
+		kv("queueManager", result.QueueManager),
+		kv("command", mqadmin.RedactMQSCCommandText(result.Command)),
+		kv("completionCode", fmt.Sprintf("%d", result.Completion.OverallCompletionCode)),
+		kv("reasonCode", fmt.Sprintf("%d", result.Completion.OverallReasonCode)),
+		kvTime("completedAt", result.CompletedAt),
+	)
+}
+
 // RenderMarkdownQueueTable renders a Markdown table for benchmark comparison.
 func RenderMarkdownQueueTable(page collection.Page[mqadmin.QueueSummary]) string {
 	var b strings.Builder

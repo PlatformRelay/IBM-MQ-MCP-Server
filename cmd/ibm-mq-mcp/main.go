@@ -26,12 +26,18 @@ import (
 const (
 	envOpsAddr    = "IBM_MQ_MCP_OPS_ADDR"
 	envConfigPath = "IBM_MQ_MCP_CONFIG"
+	envEnableMQSC = "IBM_MQ_MCP_ENABLE_MQSC"
 )
 
 func main() {
 	opsAddrFlag := flag.String("ops-addr", "", "optional ops HTTP listen address (health, readiness, metrics)")
 	configFlag := flag.String("config", "", "path to profile catalog YAML or JSON file")
 	strictStartup := flag.Bool("strict-startup", false, "exit on any profile validation failure")
+	enableMQSCFlag := flag.Bool(
+		"enable-mqsc",
+		false,
+		"register exceptional raw MQSC tool (ADR-0008; also requires profile execute_mqsc)",
+	)
 	flag.Parse()
 
 	logger := slog.New(logging.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
@@ -71,7 +77,10 @@ func main() {
 
 	var server *mcp.Server
 	if pool != nil {
-		server = mcpserver.NewWithInspector(application.NewInspector(pool))
+		server = mcpserver.NewWithInspector(
+			application.NewInspector(pool),
+			mcpserver.WithEnableMQSC(resolveEnableMQSC(*enableMQSCFlag)),
+		)
 	} else {
 		server = mcpserver.New()
 	}
@@ -93,6 +102,18 @@ func resolveConfigPath(flagValue string) string {
 		return v
 	}
 	return strings.TrimSpace(os.Getenv(envConfigPath))
+}
+
+func resolveEnableMQSC(flagValue bool) bool {
+	if flagValue {
+		return true
+	}
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(envEnableMQSC))) {
+	case "1", "true", "yes", "on":
+		return true
+	default:
+		return false
+	}
 }
 
 func loadProfiles(path string, strictStartup bool) (*application.ProfilePool, bool, error) {

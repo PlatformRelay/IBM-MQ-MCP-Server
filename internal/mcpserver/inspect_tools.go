@@ -398,7 +398,8 @@ func toolError(err error) *mcp.CallToolResult {
 }
 
 // NewWithInspector returns an MCP server with INS-001 inspection tools registered.
-func NewWithInspector(inspector *application.Inspector) *mcp.Server {
+func NewWithInspector(inspector *application.Inspector, opts ...ServerOption) *mcp.Server {
+	cfg := applyServerOptions(opts)
 	server := New()
 	if inspector != nil {
 		RegisterInspectionTools(server, inspector)
@@ -407,6 +408,9 @@ func NewWithInspector(inspector *application.Inspector) *mcp.Server {
 		RegisterProduceTools(server, application.NewProducer(pool))
 		RegisterConsumeTools(server, application.NewConsumer(pool))
 		RegisterAdminTools(server, application.NewAdministrator(pool))
+		if cfg.enableMQSC {
+			RegisterMQSCTools(server, application.NewMQSCExecutor(pool))
+		}
 	}
 	RegisterDiagnosticsTools(server, inspector)
 	return server

@@ -101,6 +101,10 @@ type Client struct {
 	DefineAuthrecErr    error
 	AlterAuthrecErr     error
 	DeleteAuthrecErr    error
+
+	ExecuteRawMQSCCalls  int
+	ExecuteRawMQSCResult mqadmin.RawMQSCResult
+	ExecuteRawMQSCErr    error
 }
 
 // New returns a fake admin client for the given profile name.
@@ -560,6 +564,21 @@ func (c *Client) DeleteAuthrec(_ context.Context, target mqadmin.AuthrecTarget) 
 	return result, nil
 }
 
+// ExecuteRawMQSC records the call and returns ExecuteRawMQSCErr when set.
+func (c *Client) ExecuteRawMQSC(_ context.Context, command string) (mqadmin.RawMQSCResult, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.ExecuteRawMQSCCalls++
+	if c.ExecuteRawMQSCErr != nil {
+		return mqadmin.RawMQSCResult{}, c.ExecuteRawMQSCErr
+	}
+	result := c.ExecuteRawMQSCResult
+	if result.Command == "" {
+		result.Command = command
+	}
+	return result, nil
+}
+
 // Calls returns invocation counts for policy-deny assertions.
 func (c *Client) Calls() (qmStatus, listQueues, getQueue, ping int) {
 	c.mu.Lock()
@@ -578,5 +597,6 @@ func (c *Client) TotalCalls() int {
 		c.DefineQueueCalls + c.AlterQueueCalls + c.DeleteQueueCalls +
 		c.DefineChannelCalls + c.AlterChannelCalls + c.DeleteChannelCalls +
 		c.DefineCHLAUTHCalls + c.AlterCHLAUTHCalls + c.DeleteCHLAUTHCalls +
-		c.DefineAuthrecCalls + c.AlterAuthrecCalls + c.DeleteAuthrecCalls
+		c.DefineAuthrecCalls + c.AlterAuthrecCalls + c.DeleteAuthrecCalls +
+		c.ExecuteRawMQSCCalls
 }
