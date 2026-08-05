@@ -107,7 +107,10 @@ func loadProfiles(path string, strictStartup bool) (*application.ProfilePool, bo
 	if strictStartup && !validation.AllValid() {
 		return nil, false, firstValidationError(validation)
 	}
-	pool := application.NewProfilePool(cat, validation, nil, nil, application.WithAdminFactory(mqweb.NewAdminClient))
+	pool := application.NewProfilePool(cat, validation, nil, nil,
+		application.WithAdminFactory(mqweb.NewAdminClient),
+		application.WithMessagingFactory(mqweb.NewMessagingClient),
+	)
 	return pool, application.ConfigReady(cat, validation), nil
 }
 

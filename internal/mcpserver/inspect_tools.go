@@ -401,9 +401,17 @@ func NewWithInspector(inspector *application.Inspector) *mcp.Server {
 	server := New()
 	if inspector != nil {
 		RegisterInspectionTools(server, inspector)
+		RegisterBrowseTools(server, application.NewBrowser(inspectorPool(inspector)))
 	}
 	RegisterDiagnosticsTools(server, inspector)
 	return server
+}
+
+func inspectorPool(inspector *application.Inspector) *application.ProfilePool {
+	if inspector == nil {
+		return nil
+	}
+	return inspector.Pool()
 }
 
 // ToolCount returns the number of registered tool specifications (tests).

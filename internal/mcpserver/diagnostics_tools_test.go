@@ -23,8 +23,8 @@ func TestDiagnosticsToolsRegistered(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(res.Tools) != 14 {
-		t.Fatalf("expected 14 tools, got %d", len(res.Tools))
+	if len(res.Tools) != 15 {
+		t.Fatalf("expected 15 tools, got %d", len(res.Tools))
 	}
 }
 
