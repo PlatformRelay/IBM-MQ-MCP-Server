@@ -84,7 +84,7 @@ after POL-001.
 [Story](stories/MSG-001.md)
 
 ### MSG-002 — Validated message production
-🛑 Blocked · Requires design question 17 and the MSG-001 spike.
+⬜ Open · lane/msg-002 — named content types, size limits, `put_queue_message`.
 [Story](stories/MSG-002.md)
 
 ### MSG-003 — Separately gated destructive consume

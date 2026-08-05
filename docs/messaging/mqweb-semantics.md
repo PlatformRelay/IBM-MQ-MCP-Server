@@ -50,6 +50,20 @@ removes messages.** The MCP browse tool uses **`GET` on `/message` and
 Server-side enforcement applies before results are serialized. Secret-like
 patterns in payload text are redacted before return; payloads are never logged.
 
+## Put semantics (MSG-002, design question 17)
+
+| Content type | Input | mqweb body |
+| --- | --- | --- |
+| `text/plain` | UTF-8 text | Raw text with `text/plain;charset=utf-8` |
+| `application/json` | JSON text (validated) | Raw JSON with `application/json;charset=utf-8` |
+| `application/octet-stream` | Standard base64 | Decoded bytes with `application/octet-stream` |
+
+- HTTP `POST` on `/message` with `ibm-mq-rest-csrf-token` (required by mqweb).
+- Response header `ibm-mq-md-messageId` supplies the allocated message ID.
+- Optional request header `ibm-mq-md-correlationId` when caller supplies one.
+- Decoded payload size capped at **65536** bytes before any network call.
+- Tool results return identifiers only — never echo the put payload.
+
 ## Query parameters
 
 Browse list calls pass (when supported by target mqweb):

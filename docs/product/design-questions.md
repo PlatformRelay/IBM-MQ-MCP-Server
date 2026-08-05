@@ -61,8 +61,13 @@ tool design. Approved answers will be recorded in ADRs and linked stories.
 16. ~~Which payload encodings and redaction rules are required?~~
     **Answered (MSG-001):** UTF-8 text preferred; binary as base64 with `encoding`;
     secret-like patterns redacted before results; payloads never logged.
-17. Should put operations accept arbitrary bytes, text/JSON only, or named
-    content types with validation?
+17. ~~Should put operations accept arbitrary bytes, text/JSON only, or named
+    content types with validation?~~
+    **Answered (MSG-002):** Named content types only — `text/plain`,
+    `application/json` (must parse as JSON), and `application/octet-stream`
+    (base64-encoded input decoded before put). Other types are rejected locally
+    with a typed error. Max payload **65536** bytes enforced before any network
+    call. Results return message/correlation IDs only; payloads are never logged.
 
 ## MKurator coexistence
 

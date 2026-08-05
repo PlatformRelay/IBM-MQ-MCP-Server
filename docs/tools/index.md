@@ -5,7 +5,7 @@
 INS-001 and INS-002 register typed inspection tools when a profile catalog is loaded
 (`--config` / `IBM_MQ_MCP_CONFIG`). INS-003 adds offline reason-code explanation
 and side-effect-free profile connectivity checks. MSG-001 adds bounded non-destructive
-message browse. Results are returned as JSON `structuredContent` ([ADR-0005](../adr/0005-structured-results-and-rendering.md)).
+message browse. MSG-002 adds validated message production. Results are returned as JSON `structuredContent` ([ADR-0005](../adr/0005-structured-results-and-rendering.md)).
 
 | Tool | Capability | Description |
 | --- | --- | --- |
@@ -24,6 +24,7 @@ message browse. Results are returned as JSON `structuredContent` ([ADR-0005](../
 | `explain_mq_reason_code` | _(offline reference; no MQ I/O)_ | Explain an IBM MQ reason code from bundled data; unknown codes get a generic fallback |
 | `check_profile_connectivity` | `inspect` | Verify mqweb reachability, identity match, and latency without mutation |
 | `browse_queue_messages` | `browse` | Bounded non-destructive queue browse; metadata by default, optional payloads |
+| `put_queue_message` | `produce` | Put one validated message; returns identifiers only (no payload echo) |
 
 Policy denies remote tools before credential resolution or mqweb I/O when the
 active profile lacks the required capability (`inspect`, `browse`, etc.). The offline reason-code tool never performs MQ

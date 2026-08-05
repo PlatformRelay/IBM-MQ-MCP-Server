@@ -1,6 +1,6 @@
 # Messaging design
 
-**Status:** Browse slice accepted (MSG-001); produce/consume deferred to MSG-002/003.
+**Status:** Browse slice accepted (MSG-001); produce accepted (MSG-002); consume deferred to MSG-003.
 
 Recorded mqweb Messaging REST behaviour for browse in
 [docs/messaging/mqweb-semantics.md](../../messaging/mqweb-semantics.md).
