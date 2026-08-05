@@ -93,8 +93,59 @@ func TestAdministratorBlocksManagedQueueBeforeAdapter(t *testing.T) {
 	if !errors.As(err, &block) {
 		t.Fatalf("error type = %T: %v", err, err)
 	}
-	if fakeClient.DefineQueueCalls != 0 {
-		t.Fatalf("define calls = %d", fakeClient.DefineQueueCalls)
+	if fakeClient.TotalCalls() != 0 {
+		t.Fatalf("adapter invoked on block: total=%d", fakeClient.TotalCalls())
+	}
+}
+
+func TestAdministratorAlterQueueBlocksBeforeAdapter(t *testing.T) {
+	t.Setenv("IBM_MQ_MCP_ADMIN_SECRET", "user:pass")
+	cat, err := catalog.LoadYAML([]byte(adminProfileDoc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	fakeClient := fake.New("prod")
+	pool := newAdminPool(t, cat, fakeClient)
+	admin := application.NewAdministrator(pool)
+
+	maxDepth := 1000
+	_, err = admin.AlterQueue(context.Background(), "prod", "APP.IN", mqadmin.AlterQueueRequest{
+		MaxDepth: &maxDepth,
+	})
+	if err == nil {
+		t.Fatal("expected block")
+	}
+	var block *coexistence.BlockError
+	if !errors.As(err, &block) {
+		t.Fatalf("error type = %T: %v", err, err)
+	}
+	if fakeClient.TotalCalls() != 0 {
+		t.Fatalf("adapter invoked on block: total=%d getQueue=%d alter=%d",
+			fakeClient.TotalCalls(), fakeClient.GetQueueCalls, fakeClient.AlterQueueCalls)
+	}
+}
+
+func TestAdministratorDeleteQueueBlocksBeforeAdapter(t *testing.T) {
+	t.Setenv("IBM_MQ_MCP_ADMIN_SECRET", "user:pass")
+	cat, err := catalog.LoadYAML([]byte(adminProfileDoc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	fakeClient := fake.New("prod")
+	pool := newAdminPool(t, cat, fakeClient)
+	admin := application.NewAdministrator(pool)
+
+	_, err = admin.DeleteQueue(context.Background(), "prod", "APP.OUT")
+	if err == nil {
+		t.Fatal("expected block")
+	}
+	var block *coexistence.BlockError
+	if !errors.As(err, &block) {
+		t.Fatalf("error type = %T: %v", err, err)
+	}
+	if fakeClient.TotalCalls() != 0 {
+		t.Fatalf("adapter invoked on block: total=%d getQueue=%d delete=%d",
+			fakeClient.TotalCalls(), fakeClient.GetQueueCalls, fakeClient.DeleteQueueCalls)
 	}
 }
 

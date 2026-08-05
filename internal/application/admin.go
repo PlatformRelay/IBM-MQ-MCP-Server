@@ -34,7 +34,7 @@ func (a *Administrator) DefineQueue(
 	if err != nil {
 		return mqadmin.QueueMutationResult{}, err
 	}
-	warning, err := a.runPreMutationHook(hook, profile, profileName, queueName, nil)
+	warning, err := a.runPreMutationHook(ctx, nil, hook, profile, profileName, queueName)
 	if err != nil {
 		return mqadmin.QueueMutationResult{}, err
 	}
@@ -60,11 +60,7 @@ func (a *Administrator) AlterQueue(
 	if err != nil {
 		return mqadmin.QueueMutationResult{}, err
 	}
-	tags, tagErr := a.objectTags(ctx, client, queueName)
-	if tagErr != nil {
-		return mqadmin.QueueMutationResult{}, tagErr
-	}
-	warning, err := a.runPreMutationHook(hook, profile, profileName, queueName, tags)
+	warning, err := a.runPreMutationHook(ctx, client, hook, profile, profileName, queueName)
 	if err != nil {
 		return mqadmin.QueueMutationResult{}, err
 	}
@@ -89,11 +85,7 @@ func (a *Administrator) DeleteQueue(
 	if err != nil {
 		return mqadmin.QueueMutationResult{}, err
 	}
-	tags, tagErr := a.objectTags(ctx, client, queueName)
-	if tagErr != nil {
-		return mqadmin.QueueMutationResult{}, tagErr
-	}
-	warning, err := a.runPreMutationHook(hook, profile, profileName, queueName, tags)
+	warning, err := a.runPreMutationHook(ctx, client, hook, profile, profileName, queueName)
 	if err != nil {
 		return mqadmin.QueueMutationResult{}, err
 	}
@@ -128,24 +120,52 @@ func (a *Administrator) authorizedMutation(
 }
 
 func (a *Administrator) runPreMutationHook(
+	ctx context.Context,
+	client mqadmin.Client,
 	hook *coexistence.PreMutationHook,
 	profile catalog.Profile,
 	profileName, queueName string,
-	tags map[string]string,
 ) (string, error) {
-	result := hook.Evaluate(coexistence.MutationTarget{
+	target := coexistence.MutationTarget{
 		Profile:      profileName,
 		QueueManager: profile.QueueManager,
 		Kind:         coexistence.ObjectQueue,
 		Name:         queueName,
-	}, tags)
-	if err := hook.Enforce(result); err != nil {
+	}
+
+	catalogResult := hook.Evaluate(target, nil)
+	if err := hook.Enforce(catalogResult); err != nil {
 		return "", err
 	}
-	if result.Outcome == coexistence.OutcomeWarn {
-		return result.Message, nil
+	warning := hookWarning(catalogResult)
+
+	if client == nil || profile.MKurator.MutationPolicy == coexistence.PolicyBlock {
+		return warning, nil
 	}
-	return "", nil
+
+	tags, err := a.objectTags(ctx, client, queueName)
+	if err != nil {
+		return "", err
+	}
+	if len(tags) == 0 {
+		return warning, nil
+	}
+
+	tagResult := hook.Evaluate(target, tags)
+	if err := hook.Enforce(tagResult); err != nil {
+		return "", err
+	}
+	if tagResult.Outcome == coexistence.OutcomeWarn {
+		return tagResult.Message, nil
+	}
+	return warning, nil
+}
+
+func hookWarning(result coexistence.PreMutationResult) string {
+	if result.Outcome == coexistence.OutcomeWarn {
+		return result.Message
+	}
+	return ""
 }
 
 func (a *Administrator) objectTags(
