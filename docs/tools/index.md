@@ -2,7 +2,7 @@
 
 ## Current state
 
-INS-001 registers four typed inspection tools when a profile catalog is loaded
+INS-001 and INS-002 register typed inspection tools when a profile catalog is loaded
 (`--config` / `IBM_MQ_MCP_CONFIG`). Results are returned as JSON
 `structuredContent` only (provisional collection contract — see below).
 
@@ -12,6 +12,14 @@ INS-001 registers four typed inspection tools when a profile catalog is loaded
 | `queue_manager_status` | `inspect` | Queue manager health; configured vs observed identity |
 | `list_queues` | `inspect` | Bounded queue listing with filters, cursor, truncation |
 | `get_queue` | `inspect` | Queue definition and live depth/status |
+| `list_channels` | `inspect` | Bounded channel listing with filters, cursor, truncation |
+| `get_channel` | `inspect` | Channel definition attributes |
+| `get_channel_status` | `inspect` | Channel runtime status (`available` / `stale` / `unavailable`) |
+| `list_listeners` | `inspect` | Bounded listener listing (unsupported mqweb modes return typed error) |
+| `get_listener` | `inspect` | Listener definition attributes |
+| `get_listener_status` | `inspect` | Listener runtime status |
+| `list_subscriptions` | `inspect` | Bounded subscription listing |
+| `get_subscription` | `inspect` | Subscription definition by id or name |
 
 Policy denies remote tools before credential resolution or mqweb I/O when the
 active profile lacks `inspect`.
@@ -39,7 +47,7 @@ checked by automation so the published reference cannot drift from code.
 
 | Check | Status |
 | --- | --- |
-| Schema-first tool definitions in Go | **Partial** — INS-001 inspection tools |
+| Schema-first tool definitions in Go | **Partial** — INS-001/INS-002 inspection tools |
 | Docs generation or freshness test in CI | **Planned** — optional job alongside `mkdocs build --strict` |
 | Breaking schema changes | Will require story acceptance + ADR when applicable |
 
