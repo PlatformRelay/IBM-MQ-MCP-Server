@@ -4,6 +4,7 @@ package opshttp
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/observability/metrics"
 	"github.com/platformrelay/ibm-mq-mcp-server/internal/observability/runtime"
@@ -46,9 +47,17 @@ func NewHandler(rt *runtime.Runtime, reg *metrics.Registry) http.Handler {
 	return mux
 }
 
-// ListenAndServe starts the ops listener until ctx is cancelled or an error occurs.
+// ListenAndServe starts the ops listener until an error occurs.
 func (s *Server) ListenAndServe() error {
-	return http.ListenAndServe(s.addr, s.handler)
+	srv := &http.Server{
+		Addr:              s.addr,
+		Handler:           s.handler,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+	return srv.ListenAndServe()
 }
 
 // Addr returns the bind address for logging.
