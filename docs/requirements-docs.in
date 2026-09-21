@@ -1,0 +1,4 @@
+# Direct docs dependencies. requirements-docs.txt is the hash-locked resolution; regenerate with:
+#   uv pip compile docs/requirements-docs.in --generate-hashes --universal --python-version 3.12 -o docs/requirements-docs.txt
+mkdocs-material==9.6.21
+pymdown-extensions==10.16.1

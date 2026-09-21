@@ -61,7 +61,9 @@ jobs:
 
       - name: Install MkDocs Material
         if: steps.changes.outputs.docs == 'true'
-        run: pip install -r docs/requirements-docs.txt
+        run: >-
+          pip install --require-hashes --only-binary :all:
+          -r docs/requirements-docs.txt
 
       - name: Build site
         if: steps.changes.outputs.docs == 'true'
