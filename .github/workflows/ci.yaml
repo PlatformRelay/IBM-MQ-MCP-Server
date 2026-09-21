@@ -33,8 +33,8 @@ jobs:
           ARCH=x64
           TARBALL="gitleaks_${GITLEAKS_VERSION}_${OS}_${ARCH}.tar.gz"
           BASE="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
-          curl -fsSL "${BASE}/${TARBALL}" -o "/tmp/${TARBALL}"
-          EXPECTED="$(curl -fsSL "${BASE}/gitleaks_${GITLEAKS_VERSION}_checksums.txt" | awk -v f="${TARBALL}" '$2 == f {print $1}')"
+          curl --proto '=https' --tlsv1.2 -fsSL "${BASE}/${TARBALL}" -o "/tmp/${TARBALL}"
+          EXPECTED="$(curl --proto '=https' --tlsv1.2 -fsSL "${BASE}/gitleaks_${GITLEAKS_VERSION}_checksums.txt" | awk -v f="${TARBALL}" '$2 == f {print $1}')"
           echo "${EXPECTED}  /tmp/${TARBALL}" | sha256sum -c -
           tar -xzf "/tmp/${TARBALL}" -C /tmp gitleaks
           sudo install -m 0755 /tmp/gitleaks /usr/local/bin/gitleaks
